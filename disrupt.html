@@ -1,0 +1,129 @@
+<!-- Base styles (used across all pages) -->
+<style>
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    margin: 0;
+    background: #f6f7f9;
+    color: #333;
+  }
+  header, footer {
+    background: #111;
+    color: #fff;
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  nav a {
+    color: #fff;
+    margin-left: 1rem;
+    text-decoration: none;
+  }
+  .container {
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  }
+  label {
+    display: block;
+    margin-top: 1rem;
+  }
+  input, select, textarea, button {
+    width: 100%;
+    padding: 0.7rem;
+    margin-top: 0.3rem;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 1rem;
+  }
+  button {
+    background: #000;
+    color: white;
+    border: none;
+    cursor: pointer;
+  }
+</style>
+
+<!-- Home Page -->
+<div class="container">
+  <h1>Welcome to Project Disrupt</h1>
+  <p>Connect locations and productions with modern tools, clear communication, and visual-first experiences.</p>
+  <div>
+    <a href="register.html"><button>List a Location</button></a>
+    <a href="search.html"><button>Find a Location</button></a>
+  </div>
+</div>
+
+<!-- Location Owner Registration (register.html) -->
+<div class="container">
+  <h2>List Your Location</h2>
+  <form id="registerForm">
+    <!-- Fields: property type, location, age, rooms, availability, descriptions -->
+    <label>Property Type</label>
+    <select><option>Semi-detached</option></select>
+    <label>Location Type</label>
+    <select><option>Rural</option></select>
+    <label>Age of Property</label>
+    <input type="text" placeholder="e.g. 1950s" />
+    <!-- More fields... -->
+    <label>Upload Images</label>
+    <input type="file" multiple />
+    <button type="submit">Submit</button>
+  </form>
+</div>
+
+<!-- Search Page (search.html) -->
+<div class="container">
+  <h2>Search Locations</h2>
+  <input type="text" id="searchInput" placeholder="Enter keywords" />
+  <div id="results"></div>
+</div>
+<script>
+  const listings = [
+    { id: 1, desc: 'Rustic barn with dramatic lighting', tags: ['barn', 'dramatic'] },
+    { id: 2, desc: 'Modern kitchen with natural light', tags: ['kitchen', 'modern'] }
+  ];
+  document.getElementById('searchInput').addEventListener('input', function () {
+    const q = this.value.toLowerCase().split(/\s+/);
+    const matches = listings.filter(l => q.every(tag => l.tags.includes(tag)));
+    document.getElementById('results').innerHTML = matches.map(m => `<p>${m.desc}</p>`).join('');
+  });
+</script>
+
+<!-- Profile Page (profile.html) -->
+<div class="container">
+  <h2>Your Profile</h2>
+  <form>
+    <label>Username</label><input type="text" />
+    <label>Email</label><input type="email" />
+    <label>Role</label><select><option>Owner</option><option>Production</option></select>
+    <label>Bio</label><textarea></textarea>
+    <button>Update</button>
+  </form>
+</div>
+
+<!-- Saved Locations (saved.html) -->
+<div class="container">
+  <h2>Saved Locations</h2>
+  <ul id="savedList"></ul>
+</div>
+<script>
+  const saved = ["Rustic barn", "Modern kitchen"];
+  document.getElementById('savedList').innerHTML = saved.map(l => `<li>${l}</li>`).join('');
+</script>
+
+<!-- Reviews Component -->
+<div class="container">
+  <h2>Leave a Review</h2>
+  <form onsubmit="event.preventDefault();">
+    <label>Rating</label>
+    <select><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
+    <label>Comment</label>
+    <input type="text" placeholder="Your thoughts..." />
+    <button>Submit Review</button>
+  </form>
+</div>
+

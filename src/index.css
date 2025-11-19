@@ -1,0 +1,86 @@
+/* src/index.css */
+
+/* Import Google Font - Inter */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* Apply Tailwind CSS base styles and utilities */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global styles for the body and root element */
+body {
+  font-family: 'Inter', sans-serif; /* Use Inter font */
+  margin: 0;
+  box-sizing: border-box;
+  background-color: #f8fafc; /* Light gray background to match tailwind's bg-gray-50 */
+  color: #1e293b; /* Dark gray text color to match tailwind's text-gray-900 */
+}
+
+/* Ensure the root element takes full height */
+#root {
+  min-height: 100vh; /* Minimum height of 100% of the viewport height */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Basic styling for form elements to ensure consistency with Tailwind */
+input[type="text"],
+input[type="email"],
+input[type="file"],
+textarea,
+select {
+  /* Removed the conflicting 'padding' rule. Tailwind classes now handle padding. */
+  appearance: none; /* Remove default browser styling for consistency */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  border: 1px solid #d1d5db; /* border-gray-300 */
+  border-radius: 0.375rem; /* rounded-md */
+  font-size: 1rem; /* text-base */
+  line-height: 1.5rem; /* leading-6 */
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
+}
+
+input[type="file"] {
+  cursor: pointer;
+}
+
+/* Focus styles for form elements */
+input[type="text"]:focus,
+input[type="email"]:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: #000; /* focus:border-black */
+  box-shadow: 0 0 0 1px #000; /* focus:ring-black */
+}
+
+/* Style for buttons to ensure consistent look */
+button {
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out, border-color 0.15s ease-in-out;
+}
+
+/* Add some margin to the main content to prevent it from sticking to the edges */
+main {
+  flex-grow: 1; /* Allows main content to take up available space */
+}
+
+/* Custom scrollbar for a cleaner look (optional) */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}

@@ -1,9 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS, cross_origin
 from functools import wraps
-import firebase_admin
-from firebase_admin import credentials, auth
-# NOTE: firestore is removed, as we are switching to PostgreSQL
 import json
 import datetime
 import os

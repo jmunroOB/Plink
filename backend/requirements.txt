@@ -9,3 +9,5 @@ gunicorn
 requests
 APScheduler
 bcrypt
+PyJWT
+jwt

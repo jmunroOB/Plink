@@ -1,8 +1,8 @@
 import React, { useState, useContext } from 'react';
-import { FirebaseContext } from '../App';
+import { AppContext } from '../App';
 
 const AdminSettings = () => {
-    const { apiFetch } = useContext(FirebaseContext);
+    const { apiFetch } = useContext(AppContext);
     const [passwordForm, setPasswordForm] = useState({ newPassword: '' });
     const [adminForm, setAdminForm] = useState({ email: '', password: '' });
     const [passwordMessage, setPasswordMessage] = useState('');

@@ -9,7 +9,7 @@ function UserList() {
         const fetchUsers = async () => {
             try {
                 // Make a GET request to the backend endpoint
-                const response = await fetch('http://localhost:5000/api/users');
+                const response = await fetch('https://plink-backend-api.onrender.com/api/users');
 
                 // Check if the response was successful
                 if (!response.ok) {

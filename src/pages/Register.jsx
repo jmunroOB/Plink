@@ -8,7 +8,7 @@ import {
 import { getAuth } from 'firebase/auth';
 import { getFirestore, collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { FirebaseContext } from '../App';
+import { AppContext } from '../App';
 
 // --- CORE STATIC DATA ---
 
@@ -235,7 +235,7 @@ const Register = () => {
     const [isDuplicate, setIsDuplicate] = useState(false);
     const [existingDocId, setExistingDocId] = useState(null);
 
-    const { app, auth, db, storage, apiFetch } = useContext(FirebaseContext);
+    const { app, auth, db, storage, apiFetch } = useContext(AppContext);
 
     const [formData, setFormData] = useState({
         fullName: '', email: '', phoneNumber: '', password: '', confirmPassword: '',

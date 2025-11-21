@@ -1,9 +1,9 @@
 import React, { useState, useContext } from 'react';
 import AdminCard from '../components/AdminCard';
-import { FirebaseContext } from '../App';
+import { AppContext } from '../App';
 
 const AdminEmail = ({ displayModal }) => {
-    const { apiFetch } = useContext(FirebaseContext);
+    const { apiFetch } = useContext(AppContext);
     const [form, setForm] = useState({ to: '', subject: '', body: '' });
 
     const handleSubmit = async (e) => {

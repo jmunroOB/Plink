@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import { FirebaseContext } from '../App'; // <-- Import FirebaseContext
+import { AppContext } from '../App'; // <-- Import FirebaseContext
 
 // Helper function for creating a promise-based image load
 const loadImage = (src) => new Promise((resolve, reject) => {
@@ -322,7 +322,7 @@ const ShareDownloadModal = ({ savedLocations, onClose }) => {
 
 
 export default function SavedLocations() {
-    const { auth, db } = useContext(FirebaseContext);
+    const { auth, db } = useContext(AppContext);
     const [savedLocations, setSavedLocations] = useState(() => {
         try {
             const storedLocations = localStorage.getItem('savedLocations');

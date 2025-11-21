@@ -1,10 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously } from 'firebase/auth';
-import { getFirestore, collection, onSnapshot, updateDoc, doc, deleteDoc, query, orderBy, getDoc, addDoc } from 'firebase/firestore';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
+// Removed all Firebase imports
 import { CheckCircle, XCircle, MessageSquare, Bell, Search } from 'lucide-react';
 
+// **HIGHLIGHTED CHANGE 1: Import AppContext**
+// We rely on the AppContext from App.js to get the API fetch utility and current admin user data.
+import { AppContext } from '../App'; // Adjust path if necessary
+
 const AdminLocations = () => {
+    // **HIGHLIGHTED CHANGE 2: Get API and User from Context**
+    const { apiFetch, currentUser } = useContext(AppContext);
+
     const [locations, setLocations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -12,122 +17,129 @@ const AdminLocations = () => {
     const [showDraftModal, setShowDraftModal] = useState(false);
     const [draftMessage, setDraftMessage] = useState('');
     const [currentLocationId, setCurrentLocationId] = useState(null);
-    const [db, setDb] = useState(null);
-    const [user, setUser] = useState(null);
+    // Removed [db, setDb], [user, setUser]
     const [pendingCount, setPendingCount] = useState(0);
 
-    useEffect(() => {
-        const initializeFirebase = async () => {
-            try {
-                const firebaseConfig = {
-                    apiKey: "AIzaSyCPzFUxkuYFr3C0epV4pz9zZum5o956HGo",
-                    authDomain: "disrupt-53691.firebaseapp.com",
-                    projectId: "disrupt-53691",
-                    storageBucket: "disrupt-53691.firebasestorage.app",
-                    messagingSenderId: "353975939726",
-                    appId: "1:353975939726:web:071e333a4261a89b9f4fdf",
-                    measurementId: "G-YMS8PD71PW"
-                };
+    // **HIGHLIGHTED CHANGE 3: Fetch Locations from PostgreSQL API**
+    // This replaces the Firebase initialization and the live onSnapshot listener.
+    const fetchLocations = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            // API endpoint to fetch all pending locations, ordered by date
+            const response = await apiFetch('/admin/locations/pending', { method: 'GET' }); 
+            const data = await response.json();
 
-                const app = initializeApp(firebaseConfig);
-                const firestoreDb = getFirestore(app);
-                const firebaseAuth = getAuth(app);
-                setDb(firestoreDb);
-                await signInAnonymously(firebaseAuth);
-                setUser(firebaseAuth.currentUser);
-            } catch (e) {
-                console.error("Error initializing Firebase:", e);
-                setError("Failed to initialize Firebase. Check console for details.");
+            if (!response.ok) {
+                throw new Error(data.message || 'Failed to fetch locations from API.');
             }
-        };
-        initializeFirebase();
-    }, []);
+
+            setLocations(data.locations);
+            setPendingCount(data.locations.filter(loc => loc.status === 'pending').length);
+        } catch (err) {
+            console.error("Failed to fetch locations:", err);
+            setError("Failed to load locations. Please check API status.");
+        } finally {
+            setLoading(false);
+        }
+    }, [apiFetch]);
 
     useEffect(() => {
-        if (!db) return;
-
-        const pendingCollectionRef = collection(db, `pending_locations`);
-        const q = query(pendingCollectionRef, orderBy('timestamp', 'desc'));
-
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const fetchedLocations = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
-            setLocations(fetchedLocations);
-            setPendingCount(fetchedLocations.filter(loc => loc.status === 'pending').length);
+        // We assume admin authentication is handled in the parent App component
+        // and the currentUser context value reflects the authenticated admin.
+        if (currentUser && currentUser.is_admin) { 
+            fetchLocations();
+        } else if (!currentUser) {
+            // If currentUser is null, it means not logged in or loading.
+            // If it's loaded and not admin, we show an error.
+            // Note: Router protection should handle full redirects.
             setLoading(false);
-        }, (err) => {
-            console.error("Failed to fetch locations:", err);
-            setError("Failed to load locations. Please check your network and security rules.");
-            setLoading(false);
-        });
+            setError("Access Denied: You must be logged in as an administrator.");
+        }
+    }, [currentUser, fetchLocations]);
 
-        return () => unsubscribe();
-    }, [db]);
-
+    // **HIGHLIGHTED CHANGE 4: Status Change Logic (API Calls)**
     const handleStatusChange = async (locationId, newStatus) => {
-        if (!db || !user) {
-            setError("Authentication failed. Please log in again.");
+        if (!currentUser || !currentUser.is_admin) {
+            setError("Authentication failed or not authorized.");
             return;
         }
 
-        const locationRef = doc(db, 'pending_locations', locationId);
-        
         try {
             if (newStatus === 'live') {
-                const docSnap = await getDoc(locationRef);
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    const liveLocationsCollection = collection(db, `locations`);
-                    await addDoc(liveLocationsCollection, {
-                        ...data,
-                        status: 'live',
-                        adminUser: user.email,
-                        lastUpdated: new Date().toISOString()
-                    });
-                    await deleteDoc(locationRef);
-                    alert("Location has been successfully approved and moved to the live collection.");
+                // API to approve location: moves it from pending table to live table
+                const response = await apiFetch(`/admin/locations/${locationId}/approve`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ adminEmail: currentUser.email })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Approval failed.');
                 }
+                alert("Location has been successfully approved and moved to the live collection.");
+                
             } else if (newStatus === 'draft') {
+                // Open modal to collect message before calling API
                 setShowDraftModal(true);
                 setCurrentLocationId(locationId);
+                return; // Exit early, confirmation handled in handleDraftConfirm
+                
             } else if (newStatus === 'pending') {
-                await updateDoc(locationRef, {
-                    status: 'pending',
-                    adminUser: null,
-                    lastUpdated: new Date().toISOString()
+                // API to move location back to pending status
+                const response = await apiFetch(`/admin/locations/${locationId}/reopen`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ adminEmail: currentUser.email })
                 });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Re-opening failed.');
+                }
                 alert('Location moved back to pending status.');
             }
+            // Refetch data to update the UI immediately
+            fetchLocations(); 
+            
         } catch (err) {
             console.error("Error updating location status:", err);
-            setError("Failed to update status. Please try again.");
+            setError(`Failed to update status: ${err.message}`);
         }
     };
 
+    // **HIGHLIGHTED CHANGE 5: Draft Confirmation Logic (API Call)**
     const handleDraftConfirm = async () => {
-        if (!db || !user || !currentLocationId) return;
+        if (!currentUser || !currentLocationId || !currentUser.is_admin) return;
 
-        const locationRef = doc(db, 'pending_locations', currentLocationId);
-        
         try {
-            await updateDoc(locationRef, {
-                status: 'draft',
-                adminUser: user.email,
-                adminMessage: draftMessage,
-                lastUpdated: new Date().toISOString()
+            const response = await apiFetch(`/admin/locations/${currentLocationId}/draft`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    adminEmail: currentUser.email, 
+                    adminMessage: draftMessage 
+                })
             });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Draft confirmation failed.');
+            }
+            
             alert('Location moved to draft status. Owner has been notified.');
             setShowDraftModal(false);
             setDraftMessage('');
             setCurrentLocationId(null);
+            fetchLocations(); // Refetch
+            
         } catch (err) {
             console.error("Error moving to draft:", err);
-            setError("Failed to move to draft. Please try again.");
+            setError(`Failed to move to draft: ${err.message}`);
         }
     };
-
+ 
     const getStatusColor = (status) => {
         switch (status) {
             case 'pending': return 'bg-red-500';
@@ -149,6 +161,8 @@ const AdminLocations = () => {
 
     if (loading) return <div className="text-center mt-10">Loading locations...</div>;
     if (error) return <div className="text-center mt-10 text-red-500">Error: {error}</div>;
+
+    // ... (rest of the render structure remains the same) ...
 
     return (
         <div className="p-8">
@@ -209,7 +223,7 @@ const AdminLocations = () => {
                                             </button>
                                         </>
                                     )}
-                                    {loc.status === 'draft' && loc.adminUser === user?.email && (
+                                    {loc.status === 'draft' && loc.adminUser === currentUser?.email && (
                                         <>
                                             <button onClick={() => handleStatusChange(loc.id, 'live')} className="text-green-600 hover:text-green-900 mr-2" title="Set Live">
                                                 <CheckCircle />

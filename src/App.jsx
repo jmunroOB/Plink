@@ -100,7 +100,7 @@ const App = () => {
 
     // **apiFetch and authentication handlers (handleLogin, handleLogout, handleRegister, etc.) remain UNCHANGED**
     // ... (Your apiFetch, handleLogin, handleLogout, handleRegister, handleUpdateListing, uploadFile functions) ...
-    const BASE_API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000'; // Added for completeness
+    const BASE_API_URL = process.env.REACT_APP_API_URL || 'https://plink-backend-api.onrender.com'; // Added for completeness
 
     const apiFetch = async (url, options = {}) => {
         const token = localStorage.getItem('authToken'); 

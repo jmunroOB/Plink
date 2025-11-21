@@ -2,14 +2,14 @@
 import React, { useState, useRef, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Paperclip, FileText } from 'lucide-react';
-import { FirebaseContext } from '../App';
+import { AppContext } from '../App';
 import { collection, addDoc, serverTimestamp, query, orderBy, where, onSnapshot } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const MessagingPage = () => {
     const { locationId } = useParams();
     const navigate = useNavigate();
-    const { auth, db, storage } = useContext(FirebaseContext);
+    const { auth, db, storage } = useContext(AppContext);
 
     const [loading, setLoading] = useState(true);
     const [messageText, setMessageText] = useState('');

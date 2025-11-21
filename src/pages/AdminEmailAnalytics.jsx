@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { FirebaseContext } from '../App';
+import { AppContext } from '../App';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import Loader from '../components/Loader';
 import ErrorMessage from '../components/ErrorMessage';
 
 const AdminEmailAnalytics = () => {
-    const { apiFetch } = useContext(FirebaseContext);
+    const { apiFetch } = useContext(AppContext);
     const [analytics, setAnalytics] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);

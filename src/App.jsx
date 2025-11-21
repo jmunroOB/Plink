@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Link, useNavigate, useLocation, Navigate } from 'react-router-dom'; // **<-- Added Navigate**
-// Removed all Firebase imports
+import { Routes, Route, Link, useNavigate, useLocation, Navigate } from 'react-router-dom'; 
 import { Home, Search, PlusSquare, User, LogIn, LogOut, Heart } from 'lucide-react';
 
-// Import all your page components
+// Import Page Components
 import Profile from './pages/Profile';
-import RegisterUser from './pages/RegisterUser';
-import Register from './pages/Register';
+import RegisterUser from './pages/RegisterUser'; // <--- AUTH PAGE (Login/Sign Up)
+import Register from './pages/Register';         // <--- BUILDING REGISTRATION (List Location)
 import SearchPage from './pages/Search';
 import HomePage from './pages/Home';
 import Saved from './pages/Saved';
@@ -16,36 +15,29 @@ import Footer from './components/Footer';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 
-// **HIGHLIGHTED CHANGE 1: Context for API and User Data**
 export const AppContext = React.createContext({ 
     currentUser: null, 
     apiFetch: () => Promise.resolve(), 
     uploadFile: () => Promise.resolve(),
 });
 
-// **HIGHLIGHTED ADDITION 1: ProtectedRoute Component** 🔐
-const ProtectedRoute = ({ isLoggedIn, children, redirectPath = '/register' }) => {
+// ** UPDATED: Redirects to /registeruser (The Auth Page) if not logged in **
+const ProtectedRoute = ({ isLoggedIn, children, redirectPath = '/registeruser' }) => {
     const location = useLocation();
 
-    // Check for the special case where /register is used for both Login and Signup.
-    // If the user is on the /register page, we shouldn't redirect them *from* it.
+    // If not logged in AND not already on the login page, redirect
     if (!isLoggedIn && location.pathname !== redirectPath) {
-        // Redirect them to the sign-up/login page, but save the current path
-        // so they can be sent back after successful login/signup.
         return <Navigate to={redirectPath} replace state={{ from: location }} />;
     }
 
     return children;
 };
 
-// The Header component remains largely the same, relying on isLoggedIn prop.
 const Header = ({ isLoggedIn, handleLogout }) => {
     const location = useLocation();
     const isAdminRoute = location.pathname.startsWith('/admin');
 
-    if (isAdminRoute) {
-        return null;
-    }
+    if (isAdminRoute) return null;
 
     return (
         <nav className="bg-white shadow-md p-4 sticky top-0 z-40">
@@ -55,25 +47,30 @@ const Header = ({ isLoggedIn, handleLogout }) => {
                     <Link to="/home" className="flex items-center gap-1 text-gray-600 hover:text-black transition">
                         <Home className="h-5 w-5" /> Home
                     </Link>
+                    
+                    {/* "List Location" goes to /register (Building Registration) */}
                     <Link to="/register" className="flex items-center gap-1 text-gray-600 hover:text-black transition">
                         <PlusSquare className="h-5 w-5" /> List Location
                     </Link>
+                    
                     <Link to="/search" className="flex items-center gap-1 text-gray-600 hover:text-black transition">
                         <Search className="h-5 w-5" /> Find Location
                     </Link>
                     <Link to="/saved" className="flex items-center gap-1 text-gray-600 hover:text-black transition">
                         <Heart className="h-5 w-5" /> Saved
                     </Link>
+                    
                     {isLoggedIn ? (
                         <Link to="/profile" className="flex items-center gap-1 text-gray-600 hover:text-black transition">
                             <User className="h-5 w-5" /> Profile
                         </Link>
                     ) : (
-                        // Login/Sign Up link now goes directly to the Register page
+                        // "Login/Sign Up" goes to /registeruser (Auth Page)
                         <Link to="/registeruser" className="flex items-center gap-1 text-gray-600 hover:text-black transition">
-                            <RegisterUser className="h-5 w-5" /> Sign Up
+                            <LogIn className="h-5 w-5" /> Login/Sign Up
                         </Link>
                     )}
+                    
                     {isLoggedIn && (
                         <button onClick={handleLogout} className="flex items-center gap-1 text-red-600 hover:text-red-800 transition">
                             <LogOut className="h-5 w-5" /> Logout
@@ -99,11 +96,10 @@ const App = () => {
         setTimeout(() => setModalContent(null), 3000);
     };
 
-    const BASE_API_URL = process.env.REACT_APP_API_URL || 'https://plink-backend-api.onrender.com'; // Added for completeness
+    const BASE_API_URL = process.env.REACT_APP_API_URL || 'https://plink-backend-api.onrender.com';
 
     const apiFetch = async (url, options = {}) => {
         const token = localStorage.getItem('authToken'); 
-        
         const response = await fetch(`${BASE_API_URL}${url}`, {
             ...options,
             headers: {
@@ -112,11 +108,7 @@ const App = () => {
                 "Content-Type": "application/json",
             }
         });
-        
-        if (response.status === 401) {
-            handleLogout(); 
-        }
-
+        if (response.status === 401) handleLogout(); 
         return response;
     };
 
@@ -126,20 +118,15 @@ const App = () => {
                 method: 'POST',
                 body: JSON.stringify({ email, password })
             });
-            
             const data = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(data.message || 'Login failed');
-            }
+            if (!response.ok) throw new Error(data.message || 'Login failed');
 
             localStorage.setItem('authToken', data.token); 
             setCurrentUser(data.user); 
             setIsLoggedIn(true);
-
             displayModal('Login successful!');
             
-            // **HIGHLIGHTED LOGIN CHANGE: Redirect back to the page they tried to access**
+            // Redirect back to where they tried to go (e.g. List Location), or Profile
             const redirectTo = location.state?.from?.pathname || '/profile';
             navigate(redirectTo, { replace: true });
 
@@ -162,45 +149,29 @@ const App = () => {
                 method: 'POST',
                 body: JSON.stringify({ email, password })
             });
-
             const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Registration failed');
 
-            if (!response.ok) {
-                throw new Error(data.message || 'Registration failed');
-            }
-
-            // After successful registration, log the user in automatically
             await handleLogin({ email, password }); 
-            
             displayModal('Registration successful!');
-            // Navigation handled by handleLogin, which redirects back to the protected page
         } catch (error) {
             console.error('Registration failed:', error.message);
             displayModal(`Registration failed: ${error.message}`);
         }
     };
     
-    // ... (handleUpdateListing and uploadFile functions remain here) ...
+    // Function for Building Registration (Listing)
     const handleUpdateListing = async (listingData) => {
         try {
             const response = await apiFetch('/users/listing', {
-                method: 'PUT', // Use PUT or PATCH for updates
-                body: JSON.stringify({ 
-                    listing: listingData 
-                })
+                method: 'PUT', 
+                body: JSON.stringify({ listing: listingData })
             });
-
             const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Failed to update listing');
 
-            if (!response.ok) {
-                throw new Error(data.message || 'Failed to update listing');
-            }
-
-            // Update the local state so the UI updates immediately without a refresh
             setCurrentUser(prev => ({ ...prev, listing: listingData }));
-            
             displayModal('Listing updated successfully!');
-
         } catch (error) {
             console.error('Update failed:', error.message);
             displayModal(`Update failed: ${error.message}`);
@@ -208,33 +179,18 @@ const App = () => {
     };
 
     const uploadFile = async (file) => {
-        // Create a FormData object to hold the file
         const formData = new FormData();
-        formData.append('file', file); // 'file' must match the key expected by Multer on your backend
-
+        formData.append('file', file); 
         try {
             const token = localStorage.getItem('authToken');
-            
-            // Use raw fetch (not apiFetch) to avoid JSON headers
             const response = await fetch(`${BASE_API_URL}/upload`, {
                 method: 'POST',
-                headers: {
-                    // We manually add the Authorization header
-                    "Authorization": token ? `Bearer ${token}` : "",
-                    // DO NOT set Content-Type here; the browser does it automatically for FormData
-                },
+                headers: { "Authorization": token ? `Bearer ${token}` : "" },
                 body: formData
             });
-
-            if (!response.ok) {
-                throw new Error('File upload failed');
-            }
-
+            if (!response.ok) throw new Error('File upload failed');
             const data = await response.json();
-            
-            // Return the URL returned by your backend (e.g., AWS S3 URL or local path)
             return data.url; 
-
         } catch (error) {
             console.error("Upload error:", error);
             displayModal("Failed to upload image");
@@ -242,7 +198,6 @@ const App = () => {
         }
     };
 
-    // **HIGHLIGHTED CHANGE 8: Auth state check is replaced by token validation**
     useEffect(() => {
         const token = localStorage.getItem('authToken');
         if (token) {
@@ -274,28 +229,61 @@ const App = () => {
             <Header isLoggedIn={isLoggedIn} handleLogout={handleLogout} />
             <main className={isAdminRoute ? "w-full h-full" : "container mx-auto mt-8 p-4"}>
                 <Routes>
-                    {/* Public Routes - Anyone can view these */}
+                    {/* --- PUBLIC ROUTES --- */}
                     <Route path="/" element={<HomePage />} />
                     <Route path="/home" element={<HomePage />} />
                     <Route path="/search" element={<SearchPage />} />
                     
-                    {/* Authentication Route - Must be accessible to log in */}
-                    <Route path="/registeruser" element={<Register displayModal={displayModal} isLoggedIn={isLoggedIn} currentUser={currentUser} handleRegister={handleRegister} handleUpdateListing={handleUpdateListing} />} />
+                    {/* ROUTE 1: USER AUTHENTICATION (Login / User Sign Up)
+                      Accessible at /registeruser. 
+                      If they are already logged in, we can redirect them to profile.
+                    */}
+                    <Route path="/registeruser" element={
+                        isLoggedIn ? <Navigate to="/profile" /> : (
+                            <RegisterUser 
+                                displayModal={displayModal} 
+                                handleLogin={handleLogin}
+                                handleRegister={handleRegister} 
+                            />
+                        )
+                    } />
                     
-                    {/* **HIGHLIGHTED CHANGE 2: Protected Routes** */}
-                    {/* Wrap components that require a logged-in user inside ProtectedRoute */}
-                    <Route path="/profile" element={
-                        <ProtectedRoute isLoggedIn={isLoggedIn}>
-                            <Profile isLoggedIn={isLoggedIn} currentUser={currentUser} handleLogin={handleLogin} handleLogout={handleLogout} displayModal={displayModal} />
+                    {/* --- PROTECTED ROUTES --- */}
+                    
+                    {/* ROUTE 2: BUILDING REGISTRATION (List Location)
+                      Accessible at /register. 
+                      User MUST be logged in to list a building.
+                    */}
+                    <Route path="/register" element={
+                        <ProtectedRoute isLoggedIn={isLoggedIn} redirectPath="/registeruser">
+                            <Register 
+                                displayModal={displayModal} 
+                                currentUser={currentUser} 
+                                handleUpdateListing={handleUpdateListing} 
+                                uploadFile={uploadFile}
+                            />
                         </ProtectedRoute>
                     } />
+
+                    <Route path="/profile" element={
+                        <ProtectedRoute isLoggedIn={isLoggedIn} redirectPath="/registeruser">
+                            <Profile 
+                                isLoggedIn={isLoggedIn} 
+                                currentUser={currentUser} 
+                                handleLogin={handleLogin} 
+                                handleLogout={handleLogout} 
+                                displayModal={displayModal} 
+                            />
+                        </ProtectedRoute>
+                    } />
+
                     <Route path="/saved" element={
-                        <ProtectedRoute isLoggedIn={isLoggedIn}>
+                        <ProtectedRoute isLoggedIn={isLoggedIn} redirectPath="/registeruser">
                             <Saved />
                         </ProtectedRoute>
                     } />
 
-                    {/* Admin Routes with nested structure */}
+                    {/* Admin Routes */}
                     <Route path="/admin/login" element={<AdminLogin displayModal={displayModal} />} />
                     <Route path="/admin/*" element={<AdminDashboard />} />
                 </Routes>

@@ -5,6 +5,7 @@ import { Home, Search, PlusSquare, User, LogIn, LogOut, Heart } from 'lucide-rea
 
 // Import all your page components
 import Profile from './pages/Profile';
+import RegisterUser from './pages/RegisterUser';
 import Register from './pages/Register';
 import SearchPage from './pages/Search';
 import HomePage from './pages/Home';
@@ -70,7 +71,7 @@ const Header = ({ isLoggedIn, handleLogout }) => {
                     ) : (
                         // Login/Sign Up link now goes directly to the Register page
                         <Link to="/registeruser" className="flex items-center gap-1 text-gray-600 hover:text-black transition">
-                            <LogIn className="h-5 w-5" /> Login/Sign Up
+                            <RegisterUser className="h-5 w-5" /> Sign Up
                         </Link>
                     )}
                     {isLoggedIn && (
@@ -279,7 +280,7 @@ const App = () => {
                     <Route path="/search" element={<SearchPage />} />
                     
                     {/* Authentication Route - Must be accessible to log in */}
-                    <Route path="/register" element={<Register displayModal={displayModal} isLoggedIn={isLoggedIn} currentUser={currentUser} handleRegister={handleRegister} handleUpdateListing={handleUpdateListing} />} />
+                    <Route path="/registeruser" element={<Register displayModal={displayModal} isLoggedIn={isLoggedIn} currentUser={currentUser} handleRegister={handleRegister} handleUpdateListing={handleUpdateListing} />} />
                     
                     {/* **HIGHLIGHTED CHANGE 2: Protected Routes** */}
                     {/* Wrap components that require a logged-in user inside ProtectedRoute */}

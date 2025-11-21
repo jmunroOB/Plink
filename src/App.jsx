@@ -64,7 +64,7 @@ const Header = ({ isLoggedIn, handleLogout }) => {
                         <Heart className="h-5 w-5" /> Saved
                     </Link>
                     {isLoggedIn ? (
-                        <Link to="/profile" className="flex items-center gap-1 text-gray-600 hover:text-black transition">
+                        <Link to="/registeruser" className="flex items-center gap-1 text-gray-600 hover:text-black transition">
                             <User className="h-5 w-5" /> Profile
                         </Link>
                     ) : (

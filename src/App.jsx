@@ -182,8 +182,24 @@ const App = () => {
     };
     
     // ... (handleUpdateListing and uploadFile functions remain here) ...
-    const handleUpdateListing = async (listingData) => { /* ... */ };
-    const uploadFile = async (file, path) => { /* ... */ };
+    const handleUpdateListing = async (listingData) => {
+        try {
+            if (currentUser && currentUser.uid) {
+                const userDocRef = doc(db, 'user_collection', currentUser.uid);
+                await setDoc(userDocRef, { ...currentUser, listing: listingData }, { merge: true });
+                displayModal('Listing updated successfully!');
+            }
+        } catch (error) {
+            console.error('Update failed:', error.message);
+            displayModal(`Update failed: ${error.message}`);
+        }
+    };
+
+    const uploadFile = async (file, path) => {
+        const fileRef = ref(appStorage, path);
+        const snapshot = await uploadBytes(fileRef, file);
+        return getDownloadURL(snapshot.ref);
+    };
 
     // **HIGHLIGHTED CHANGE 8: Auth state check is replaced by token validation**
     useEffect(() => {

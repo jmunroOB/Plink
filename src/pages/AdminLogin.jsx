@@ -1,14 +1,14 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock } from 'lucide-react';
-import { FirebaseContext } from '../App';
+import { AppContext } from '../App';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 
 const AdminLogin = ({ displayModal }) => {
     const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const { auth } = useContext(FirebaseContext);
+    const { auth } = useContext(AppContext);
 
     const handleAdminLogin = async (e) => {
         e.preventDefault();
@@ -17,7 +17,7 @@ const AdminLogin = ({ displayModal }) => {
             const user = userCredential.user;
             const idToken = await user.getIdToken();
 
-            const response = await fetch('http://localhost:5000/admin/verify_token', {
+            const response = await fetch('https://plink-backend-api.onrender.com/admin/verify_token', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

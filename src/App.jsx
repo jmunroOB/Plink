@@ -64,12 +64,12 @@ const Header = ({ isLoggedIn, handleLogout }) => {
                         <Heart className="h-5 w-5" /> Saved
                     </Link>
                     {isLoggedIn ? (
-                        <Link to="/registeruser" className="flex items-center gap-1 text-gray-600 hover:text-black transition">
+                        <Link to="/profile" className="flex items-center gap-1 text-gray-600 hover:text-black transition">
                             <User className="h-5 w-5" /> Profile
                         </Link>
                     ) : (
                         // Login/Sign Up link now goes directly to the Register page
-                        <Link to="/register" className="flex items-center gap-1 text-gray-600 hover:text-black transition">
+                        <Link to="/registeruser" className="flex items-center gap-1 text-gray-600 hover:text-black transition">
                             <LogIn className="h-5 w-5" /> Login/Sign Up
                         </Link>
                     )}
@@ -98,8 +98,6 @@ const App = () => {
         setTimeout(() => setModalContent(null), 3000);
     };
 
-    // **apiFetch and authentication handlers (handleLogin, handleLogout, handleRegister, etc.) remain UNCHANGED**
-    // ... (Your apiFetch, handleLogin, handleLogout, handleRegister, handleUpdateListing, uploadFile functions) ...
     const BASE_API_URL = process.env.REACT_APP_API_URL || 'https://plink-backend-api.onrender.com'; // Added for completeness
 
     const apiFetch = async (url, options = {}) => {

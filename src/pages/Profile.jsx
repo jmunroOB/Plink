@@ -2,7 +2,7 @@
 
 import React, { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { FirebaseContext } from '../App';
+import { AppContext } from '../App';
 import { Mail, Lock, Phone, User as UserIcon, LogIn as LogInIcon } from 'lucide-react';
 
 const Register = ({ displayModal, handleRegister }) => {

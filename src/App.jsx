@@ -184,21 +184,63 @@ const App = () => {
     // ... (handleUpdateListing and uploadFile functions remain here) ...
     const handleUpdateListing = async (listingData) => {
         try {
-            if (currentUser && currentUser.uid) {
-                const userDocRef = doc(db, 'user_collection', currentUser.uid);
-                await setDoc(userDocRef, { ...currentUser, listing: listingData }, { merge: true });
-                displayModal('Listing updated successfully!');
+            const response = await apiFetch('/users/listing', {
+                method: 'PUT', // Use PUT or PATCH for updates
+                body: JSON.stringify({ 
+                    listing: listingData 
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Failed to update listing');
             }
+
+            // Update the local state so the UI updates immediately without a refresh
+            setCurrentUser(prev => ({ ...prev, listing: listingData }));
+            
+            displayModal('Listing updated successfully!');
+
         } catch (error) {
             console.error('Update failed:', error.message);
             displayModal(`Update failed: ${error.message}`);
         }
     };
 
-    const uploadFile = async (file, path) => {
-        const fileRef = ref(appStorage, path);
-        const snapshot = await uploadBytes(fileRef, file);
-        return getDownloadURL(snapshot.ref);
+    const uploadFile = async (file) => {
+        // Create a FormData object to hold the file
+        const formData = new FormData();
+        formData.append('file', file); // 'file' must match the key expected by Multer on your backend
+
+        try {
+            const token = localStorage.getItem('authToken');
+            
+            // Use raw fetch (not apiFetch) to avoid JSON headers
+            const response = await fetch(`${BASE_API_URL}/upload`, {
+                method: 'POST',
+                headers: {
+                    // We manually add the Authorization header
+                    "Authorization": token ? `Bearer ${token}` : "",
+                    // DO NOT set Content-Type here; the browser does it automatically for FormData
+                },
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error('File upload failed');
+            }
+
+            const data = await response.json();
+            
+            // Return the URL returned by your backend (e.g., AWS S3 URL or local path)
+            return data.url; 
+
+        } catch (error) {
+            console.error("Upload error:", error);
+            displayModal("Failed to upload image");
+            throw error;
+        }
     };
 
     // **HIGHLIGHTED CHANGE 8: Auth state check is replaced by token validation**

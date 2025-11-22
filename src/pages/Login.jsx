@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Mail, Lock, LogIn } from '../App';
+// FIX: Import icons from lucide-react, not ../App
+import { Mail, Lock, LogIn } from 'lucide-react'; 
 
 const Login = ({ displayModal, handleLogin, onNavigate }) => {
     const [email, setEmail] = useState('');
@@ -11,15 +12,18 @@ const Login = ({ displayModal, handleLogin, onNavigate }) => {
         setIsLoading(true);
 
         try {
-            // Call your login handler (this should verify credentials against your database)
+            // Uses the handleLogin passed from App.jsx (which calls the PostgreSQL API)
             await handleLogin({ email, password });
-            displayModal("Login successful!");
+            
+            // Note: displayModal and navigation are often handled inside handleLogin in App.jsx
+            // but if not, we handle them here:
             if (onNavigate) {
                 onNavigate('/profile');
             }
         } catch (error) {
             console.error("Login failed:", error.message);
-            displayModal(`Login failed: ${error.message}`);
+            // Ensure displayModal exists before calling
+            if (displayModal) displayModal(`Login failed: ${error.message}`);
         } finally {
             setIsLoading(false);
         }
@@ -55,6 +59,7 @@ const Login = ({ displayModal, handleLogin, onNavigate }) => {
                             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
+                    {/* Forgot Password Link (Optional placeholder) */}
                     <div className="flex justify-end">
                         <button
                             type="button"

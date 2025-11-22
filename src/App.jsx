@@ -8,6 +8,7 @@ import RegisterUser from './pages/RegisterUser'; // <--- AUTH PAGE (Login/Sign U
 import Register from './pages/Register';         // <--- BUILDING REGISTRATION (List Location)
 import SearchPage from './pages/Search';
 import HomePage from './pages/Home';
+import Login from './pages/Login';
 import Saved from './pages/Saved';
 import Footer from './components/Footer';
 
@@ -241,6 +242,16 @@ const App = () => {
                     <Route path="/registeruser" element={
                         isLoggedIn ? <Navigate to="/profile" /> : (
                             <RegisterUser 
+                                displayModal={displayModal} 
+                                handleLogin={handleLogin}
+                                handleRegister={handleRegister} 
+                            />
+                        )
+                    } />
+
+                    <Route path="/login" element={
+                        isLoggedIn ? <Navigate to="/profile" /> : (
+                            <Login 
                                 displayModal={displayModal} 
                                 handleLogin={handleLogin}
                                 handleRegister={handleRegister} 

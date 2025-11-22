@@ -99,7 +99,7 @@ const Register = ({ displayModal, handleRegister }) => {
 
                 <div className="mt-6 text-center">
                     <p className="text-gray-600">Already have an account?</p>
-                    <Link to="/profile" className="text-blue-600 hover:underline font-medium">
+                    <Link to="/login" className="text-blue-600 hover:underline font-medium">
                         Login Here
                     </Link>
                 </div>

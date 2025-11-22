@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Lock, LogIn } from 'lucide-react';
+import { Mail, Lock, LogIn } from '../App';
 
 const Login = ({ displayModal, handleLogin, onNavigate }) => {
     const [email, setEmail] = useState('');

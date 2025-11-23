@@ -10,4 +10,3 @@ requests
 APScheduler
 bcrypt
 PyJWT
-jwt

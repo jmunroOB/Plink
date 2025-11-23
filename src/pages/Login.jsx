@@ -58,13 +58,9 @@ const Login = ({ displayModal, handleLogin, onNavigate }) => {
                     </div>
                     {/* Forgot Password Link (Optional placeholder) */}
                     <div className="flex justify-end">
-                        <button
-                            type="button"
-                            onClick={() => onNavigate && onNavigate('/forgot-password')}
-                            className="text-sm text-blue-500 hover:text-blue-600"
-                        >
-                            Forgot password?
-                        </button>
+                        <Link to="/login" className="text-blue-600 hover:underline font-medium">
+                                                Forgot Password?
+                                            </Link>
                     </div>
                     <button
                         type="submit"
@@ -77,13 +73,9 @@ const Login = ({ displayModal, handleLogin, onNavigate }) => {
                 <div className="mt-6 text-center">
                     <p className="text-gray-600">
                         Don't have an account?{' '}
-                        <button
-                            type="button"
-                            onClick={() => onNavigate && onNavigate('/register')}
-                            className="text-blue-500 hover:text-blue-600 font-semibold"
-                        >
-                            Sign up
-                        </button>
+                        <Link to="/registeruser" className="text-blue-600 hover:underline font-medium">
+                                                Sign Up
+                                            </Link>
                     </p>
                 </div>
             </div>

@@ -4,17 +4,20 @@ import { Home, Search, PlusSquare, User, LogIn, LogOut, Heart } from 'lucide-rea
 
 // Import Page Components
 import Profile from './pages/Profile';
-import RegisterUser from './pages/RegisterUser'; // <--- AUTH PAGE (Login/Sign Up)
-import Register from './pages/Register';         // <--- BUILDING REGISTRATION (List Location)
+import RegisterUser from './pages/RegisterUser';
+import Login from './pages/Login'; 
+import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';      
 import SearchPage from './pages/Search';
 import HomePage from './pages/Home';
-import Login from './pages/Login';
+
 import Saved from './pages/Saved';
 import Footer from './components/Footer';
 
 // Admin Page Imports
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
+import ForgotPassword from './pages/ForgotPassword';
 
 export const AppContext = React.createContext({ 
     currentUser: null, 
@@ -252,6 +255,16 @@ const App = () => {
                     <Route path="/login" element={
                         isLoggedIn ? <Navigate to="/profile" /> : (
                             <Login 
+                                displayModal={displayModal} 
+                                handleLogin={handleLogin}
+                                handleRegister={handleRegister} 
+                            />
+                        )
+                    } />
+
+                    <Route path="/forgotpassword" element={
+                        isLoggedIn ? <Navigate to="/profile" /> : (
+                            <ForgotPassword 
                                 displayModal={displayModal} 
                                 handleLogin={handleLogin}
                                 handleRegister={handleRegister} 

@@ -128,12 +128,12 @@ const App = () => {
             displayModal('Login successful!');
             
             // Redirect back to where they tried to go (e.g. List Location), or Profile
-            const redirectTo = location.state?.from?.pathname || '/profile';
+            const redirectTo = location.state?.from?.pathname || '/login';
             navigate(redirectTo, { replace: true });
 
         } catch (error) {
             console.error('Login failed:', error.message);
-            displayModal(`Login failed: ${error.message}`);
+            displayModal(`Please try again: ${error.message}`);
         }
     };
 

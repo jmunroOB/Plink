@@ -32,9 +32,6 @@ const Login = ({ displayModal, handleLogin, onNavigate }) => {
     return (
         <div className="flex flex-col items-center justify-center p-8 min-h-[calc(100vh-100px)]">
             <div className="w-full max-w-md p-8 bg-white shadow-lg rounded-lg">
-                <div className="flex justify-center mb-6">
-                    <LogIn className="text-blue-500" size={48} />
-                </div>
                 <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">Welcome Back</h1>
                 <form onSubmit={handleLoginSubmit} className="space-y-4">
                     <div className="relative">

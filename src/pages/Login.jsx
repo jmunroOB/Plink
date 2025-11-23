@@ -58,7 +58,7 @@ const Login = ({ displayModal, handleLogin, onNavigate }) => {
                     </div>
                     {/* Forgot Password Link (Optional placeholder) */}
                     <div className="flex justify-end">
-                        <Link to="/login" className="text-blue-600 hover:underline font-medium">
+                        <Link to="/forgotpassword" className="text-blue-600 hover:underline font-medium">
                                                 Forgot Password?
                                             </Link>
                     </div>

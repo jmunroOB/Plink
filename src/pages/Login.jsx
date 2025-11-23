@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-// FIX: Import icons from lucide-react, not ../App
+import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, LogIn } from 'lucide-react'; 
 
 const Login = ({ displayModal, handleLogin, onNavigate }) => {

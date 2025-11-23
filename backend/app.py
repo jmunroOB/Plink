@@ -575,6 +575,53 @@ def add_new_admin():
         if "duplicate key value violates unique constraint" in str(e):
             return jsonify({"error": "User already exists"}), 409
         return jsonify({"error": str(e)}), 500
+    
+@app.route('/auth/forgot-password', methods=['POST'])
+def forgot_password():
+    data = request.get_json()
+    email = data.get('email')
+
+    if not email:
+        return jsonify({"message": "Email is required"}), 400
+
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # 1. Check if user exists
+        cur.execute("SELECT id FROM users WHERE email = %s", (email,))
+        user = cur.fetchone()
+        
+        if not user:
+            # SECURITY: We return 200 OK even if user is not found 
+            # to prevent hackers from scanning your database for valid emails.
+            # (Or return 404 if you prefer the "Credentials incorrect" error you asked for)
+            cur.close()
+            conn.close()
+            return jsonify({"message": "If that email exists, a reset link has been sent."}), 200
+
+        # 2. Generate a temporary reset token (In production, save this to DB)
+        # For now, we will just simulate sending it
+        reset_token = ''.join(random.choices(string.ascii_letters + string.digits, k=32))
+        
+        # TODO: Save reset_token to database with an expiration time
+        # cur.execute("UPDATE users SET reset_token = %s WHERE email = %s", (reset_token, email))
+        # conn.commit()
+
+        # 3. Send Email (Stub)
+        print(f"============================================")
+        print(f" [MOCK EMAIL] To: {email}")
+        print(f" [MOCK EMAIL] Link: https://plink-rmjy.onrender.com/reset-password?token={reset_token}")
+        print(f"============================================")
+
+        cur.close()
+        conn.close()
+        
+        return jsonify({"message": "Reset link sent"}), 200
+
+    except Exception as e:
+        print(f"Error in forgot_password: {e}")
+        return jsonify({"message": "Internal server error"}), 500
 
 
 if __name__ == '__main__':

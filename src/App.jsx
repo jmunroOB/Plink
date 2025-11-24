@@ -337,7 +337,7 @@ const App = () => {
                                 displayModal={displayModal}
                                 handleRegister={handleRegister}
                                 handleUpdateProfile={handleUpdateProfile} // <--- Pass the new function
-                                currentUser={currentUser}                 // <--- Pass the current user
+                                currentUser={user}                 // <--- Pass the current user
                                 apiFetch={apiFetch}                       // <--- Pass apiFetch for listings
                             /> 
                         </ProtectedRoute>

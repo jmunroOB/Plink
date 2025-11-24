@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { 
-    Mail, 
-    Lock, 
-    Phone, 
-    User as UserIcon, 
-    Building, 
-    MapPin, 
-    Loader 
+import {
+    Mail,
+    Lock,
+    Phone,
+    User as UserIcon,
+    Building,
+    MapPin,
+    Loader
 } from 'lucide-react';
 
-const UserProfile = ({ 
-    displayModal, 
-    handleRegister, 
+const UserProfile = ({
+    displayModal,
+    handleRegister,
     handleUpdateProfile, // You need to pass this new function from App.jsx
     currentUser,         // Pass the logged-in user object
     apiFetch             // Pass the apiFetch helper to load listings
@@ -25,7 +25,7 @@ const UserProfile = ({
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [bio, setBio] = useState('');
-    
+
     // Listings State
     const [myListings, setMyListings] = useState([]);
     const [loadingListings, setLoadingListings] = useState(false);
@@ -38,7 +38,7 @@ const UserProfile = ({
             setPhoneNumber(currentUser.phone_number || '');
             setBio(currentUser.bio || '');
             // We don't pre-fill password for security
-            
+
             // Fetch this specific user's listings
             fetchMyListings();
         }
@@ -50,7 +50,7 @@ const UserProfile = ({
         try {
             // Assuming your backend has an endpoint to get listings for the current user
             // If not, you might need to fetch all and filter, but that's inefficient.
-            const response = await apiFetch(`/users/${currentUser.id}/listings`); 
+            const response = await apiFetch(`/users/${currentUser.id}/listings`);
             if (response.ok) {
                 const data = await response.json();
                 setMyListings(data.listings || data); // Adjust based on your API structure
@@ -73,10 +73,10 @@ const UserProfile = ({
             return;
         }
 
-        const payload = { 
-            email, 
-            phone_number: phoneNumber, 
-            bio 
+        const payload = {
+            email,
+            phone_number: phoneNumber,
+            bio
         };
 
         // Only add password to payload if the user actually typed one
@@ -115,12 +115,18 @@ const UserProfile = ({
 
     return (
         <div className="flex flex-col items-center justify-start p-8 min-h-[calc(100vh-100px)]">
-            
+
             {/* --- PROFILE / REGISTER FORM --- */}
             <div className="w-full max-w-md p-8 bg-white shadow-lg rounded-lg mb-8">
                 <h1 className="text-3xl font-bold mb-2 text-center text-gray-800">
                     {currentUser ? 'Edit Profile' : 'Register'}
                 </h1>
+
+                <div className="bg-red-100 border border-red-400 text-red-700 p-4 my-4 text-xs font-mono break-all">
+                    <p><strong>DEBUG INFO (Remove after fixing):</strong></p>
+                    <p>Current User: {JSON.stringify(currentUser)}</p>
+                </div>
+
                 {currentUser && (
                     <p className="text-center text-gray-500 mb-6 text-sm">Update your details below</p>
                 )}
@@ -244,8 +250,8 @@ const UserProfile = ({
                                             <MapPin size={14} className="mr-1" />
                                             <span className="truncate">{listing.address || 'No address provided'}</span>
                                         </div>
-                                        <Link 
-                                            to={`/edit-listing/${listing.id}`} 
+                                        <Link
+                                            to={`/edit-listing/${listing.id}`}
                                             className="block text-center w-full py-2 border border-gray-300 rounded text-sm font-medium hover:bg-gray-50 transition"
                                         >
                                             Edit Property

@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS, cross_origin
+from flask_cors import CORS
 from functools import wraps
 import json
 import datetime
@@ -14,16 +14,16 @@ from psycopg2 import pool, extras
 import bcrypt      # For password hashing
 import jwt         # For creating secure session tokens (JWTs)
 from datetime import timedelta
+import random      # ADDED: Needed for forgot password
+import string      # ADDED: Needed for forgot password
 
 # --- ENVIRONMENT VARIABLES & SECURITY SETUP ---
 DATABASE_URL = os.environ.get("DATABASE_URL")
-# NEW: Define a secret key for signing JWTs. Must be set on Render.
 JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "SUPER_SECRET_FALLBACK_KEY_NEEDS_TO_BE_REPLACED") 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 if not DATABASE_URL:
     print("FATAL: DATABASE_URL environment variable not set.")
-
 
 # --- POSTGRESQL CONNECTION POOL SETUP ---
 db_pool = None
@@ -73,13 +73,24 @@ def execute_sql(sql_query, params=None, fetch_one=False, fetch_all=False, commit
         if conn:
             release_db_connection(conn)
 
-# --- FIREBASE REMOVAL: Imports and initialization removed here ---
-
-# IMPORTANT: AI Key
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyAfjSp6FNId4MjEM-wtS4GTZCHqdhA8fM0") 
 
 app = Flask(__name__)
-CORS(app) 
+
+# =======================================================
+# === CORS CONFIGURATION (THE FIX) ===
+# =======================================================
+# This explicitly tells the browser: "I allow these specific websites to talk to me"
+# It also specifically allows the 'Authorization' header needed for your JWTs.
+CORS(app, resources={r"/*": {
+    "origins": [
+        "https://plink-rmjy.onrender.com",  # Your Live Frontend
+        "http://localhost:3000",            # Your Localhost (for testing)
+        "https://plink-backend-api.onrender.com" # Self (sometimes needed)
+    ],
+    "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    "allow_headers": ["Content-Type", "Authorization"],
+    "supports_credentials": True
+}})
 
 # Initialize APScheduler
 scheduler = BackgroundScheduler()
@@ -87,12 +98,17 @@ scheduler.start()
 atexit.register(lambda: scheduler.shutdown())
 
 # =======================================================
-# === NEW AUTHENTICATION: JWT DECORATOR ===
+# === AUTHENTICATION DECORATOR ===
 # =======================================================
 
 def jwt_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
+        # Allow OPTIONS requests to pass through without checking token
+        # (This is crucial for the browser "Preflight" check)
+        if request.method == 'OPTIONS':
+            return jsonify({'status': 'ok'}), 200
+
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
             return jsonify({"error": "Authorization token missing or invalid"}), 401
@@ -145,11 +161,10 @@ def send_scheduled_email(recipients_type, subject, body, file_paths):
 
 
 # =======================================================
-# === NEW USER AUTHENTICATION ENDPOINTS ===
+# === USER AUTHENTICATION ENDPOINTS ===
 # =======================================================
 
 @app.route("/auth/register", methods=["POST"])
-@cross_origin()
 def register():
     data = request.json
     email = data.get("email")
@@ -173,7 +188,6 @@ def register():
         return jsonify({"error": f"Registration failed: {e}"}), 500
 
 @app.route("/auth/login", methods=["POST"])
-@cross_origin()
 def login():
     data = request.json
     email = data.get("email")
@@ -204,13 +218,10 @@ def login():
 
 # --- AI ANALYSIS ROUTE ---
 @app.route("/ai/analyze", methods=["POST"])
-@cross_origin() 
-# NOTE: This route is generally public, but if restricted, use @jwt_required
 def ai_analyze():
     data = request.json
     image_data_list = data.get('imageData', [])
     
-    # ... (AI logic remains the same) ...
     if not image_data_list or not GEMINI_API_KEY:
         return jsonify({"error": "AI service failed: Gemini API Key is not configured."}), 400
 
@@ -271,11 +282,10 @@ def ai_analyze():
 
 
 # =======================================================
-# === ADMIN ROUTES (ALL NOW PROTECTED BY @jwt_required) ===
+# === ADMIN ROUTES ===
 # =======================================================
 
 @app.route("/admin/verify_token", methods=["POST", "OPTIONS"])
-@cross_origin()
 @jwt_required
 def verify_token_route():
     # This route verifies the JWT role and expiration
@@ -589,19 +599,16 @@ def forgot_password():
         cur = conn.cursor()
         
         # 1. Check if user exists
-        cur.execute("SELECT id FROM users WHERE email = %s", (email,))
+        cur.execute("SELECT id FROM auth_users WHERE email = %s", (email,))
         user = cur.fetchone()
         
         if not user:
             # SECURITY: We return 200 OK even if user is not found 
-            # to prevent hackers from scanning your database for valid emails.
-            # (Or return 404 if you prefer the "Credentials incorrect" error you asked for)
             cur.close()
             conn.close()
             return jsonify({"message": "If that email exists, a reset link has been sent."}), 200
 
         # 2. Generate a temporary reset token (In production, save this to DB)
-        # For now, we will just simulate sending it
         reset_token = ''.join(random.choices(string.ascii_letters + string.digits, k=32))
         
         # TODO: Save reset_token to database with an expiration time

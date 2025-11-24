@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Link, useNavigate, useLocation, Navigate } from 'react-router-dom'; 
+import { Routes, Route, Link, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { Home, Search, PlusSquare, User, LogIn, LogOut, Heart } from 'lucide-react';
 
 // Import Page Components
 import Profile from './pages/Profile';
 import RegisterUser from './pages/RegisterUser';
-import Login from './pages/Login'; 
+import Login from './pages/Login';
 import Register from './pages/Register';
-import ForgotPassword from './pages/ForgotPassword';      
+import ForgotPassword from './pages/ForgotPassword';
 import SearchPage from './pages/Search';
 import HomePage from './pages/Home';
 
@@ -19,9 +19,9 @@ import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 
 
-export const AppContext = React.createContext({ 
-    currentUser: null, 
-    apiFetch: () => Promise.resolve(), 
+export const AppContext = React.createContext({
+    currentUser: null,
+    apiFetch: () => Promise.resolve(),
     uploadFile: () => Promise.resolve(),
 });
 
@@ -51,19 +51,19 @@ const Header = ({ isLoggedIn, handleLogout }) => {
                     <Link to="/home" className="flex items-center gap-1 text-gray-600 hover:text-black transition">
                         <Home className="h-5 w-5" /> Home
                     </Link>
-                    
+
                     {/* "List Location" goes to /register (Building Registration) */}
                     <Link to="/register" className="flex items-center gap-1 text-gray-600 hover:text-black transition">
                         <PlusSquare className="h-5 w-5" /> List Location
                     </Link>
-                    
+
                     <Link to="/search" className="flex items-center gap-1 text-gray-600 hover:text-black transition">
                         <Search className="h-5 w-5" /> Find Location
                     </Link>
                     <Link to="/saved" className="flex items-center gap-1 text-gray-600 hover:text-black transition">
                         <Heart className="h-5 w-5" /> Saved
                     </Link>
-                    
+
                     {isLoggedIn ? (
                         <Link to="/profile" className="flex items-center gap-1 text-gray-600 hover:text-black transition">
                             <User className="h-5 w-5" /> Profile
@@ -74,7 +74,7 @@ const Header = ({ isLoggedIn, handleLogout }) => {
                             <LogIn className="h-5 w-5" /> Login/Sign Up
                         </Link>
                     )}
-                    
+
                     {isLoggedIn && (
                         <button onClick={handleLogout} className="flex items-center gap-1 text-red-600 hover:text-red-800 transition">
                             <LogOut className="h-5 w-5" /> Logout
@@ -103,7 +103,7 @@ const App = () => {
     const BASE_API_URL = process.env.REACT_APP_API_URL || 'https://plink-backend-api.onrender.com';
 
     const apiFetch = async (url, options = {}) => {
-        const token = localStorage.getItem('authToken'); 
+        const token = localStorage.getItem('authToken');
         const response = await fetch(`${BASE_API_URL}${url}`, {
             ...options,
             headers: {
@@ -112,25 +112,37 @@ const App = () => {
                 "Content-Type": "application/json",
             }
         });
-        if (response.status === 401) handleLogout(); 
+        if (response.status === 401) handleLogout();
         return response;
     };
 
     const handleLogin = async ({ email, password }) => {
         try {
-            const response = await apiFetch('/auth/login', { 
+            const response = await apiFetch('/auth/login', {
                 method: 'POST',
                 body: JSON.stringify({ email, password })
             });
-            const data = await response.json();
+
+            // 1. Check if the response is actually JSON before parsing
+            const contentType = response.headers.get("content-type");
+            let data;
+
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+                data = await response.json();
+            } else {
+                // If it's not JSON (likely a 500 HTML error page), read it as text
+                const text = await response.text();
+                console.error("Server returned non-JSON response:", text);
+                throw new Error("Server Error: The backend returned an HTML error page. Check server logs.");
+            }
+
             if (!response.ok) throw new Error(data.message || 'Login failed');
 
-            localStorage.setItem('authToken', data.token); 
-            setCurrentUser(data.user); 
+            localStorage.setItem('authToken', data.token);
+            setCurrentUser(data.user);
             setIsLoggedIn(true);
             displayModal('Login successful!');
-            
-            // Redirect back to where they tried to go (e.g. List Location), or Profile
+
             const redirectTo = location.state?.from?.pathname || '/login';
             navigate(redirectTo, { replace: true });
 
@@ -141,34 +153,64 @@ const App = () => {
     };
 
     const handleLogout = () => {
-        localStorage.removeItem('authToken'); 
+        localStorage.removeItem('authToken');
         setIsLoggedIn(false);
         setCurrentUser(null);
         navigate('/');
     };
 
-    const handleRegister = async ({ email, password }) => { 
+    const handleRegister = async ({ email, password }) => {
         try {
-            const response = await apiFetch('/auth/register', { 
+            const response = await apiFetch('/auth/register', {
                 method: 'POST',
                 body: JSON.stringify({ email, password })
             });
             const data = await response.json();
             if (!response.ok) throw new Error(data.message || 'Registration failed');
 
-            await handleLogin({ email, password }); 
+            await handleLogin({ email, password });
             displayModal('Registration successful!');
         } catch (error) {
             console.error('Registration failed:', error.message);
             displayModal(`Registration failed: ${error.message}`);
         }
     };
-    
+
+    const handleUpdateProfile = async (userData) => {
+        try {
+            // We use PUT because we are updating existing data
+            const response = await apiFetch('/users/profile', {
+                method: 'PUT',
+                body: JSON.stringify(userData)
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                // We throw the error so UserProfile.jsx can catch it 
+                // and display specific messages (like "Email already taken")
+                throw new Error(data.message || 'Failed to update profile');
+            }
+
+            // Update the local state immediately so the UI reflects changes
+            // We merge the old user data with the new response
+            setCurrentUser(data.user);
+
+            // We return the data in case the component needs it
+            return data;
+
+        } catch (error) {
+            console.error("Profile update error:", error);
+            // Re-throw the error so the Component knows it failed
+            throw error;
+        }
+    };
+
     // Function for Building Registration (Listing)
     const handleUpdateListing = async (listingData) => {
         try {
             const response = await apiFetch('/users/listing', {
-                method: 'PUT', 
+                method: 'PUT',
                 body: JSON.stringify({ listing: listingData })
             });
             const data = await response.json();
@@ -184,7 +226,7 @@ const App = () => {
 
     const uploadFile = async (file) => {
         const formData = new FormData();
-        formData.append('file', file); 
+        formData.append('file', file);
         try {
             const token = localStorage.getItem('authToken');
             const response = await fetch(`${BASE_API_URL}/upload`, {
@@ -194,7 +236,7 @@ const App = () => {
             });
             if (!response.ok) throw new Error('File upload failed');
             const data = await response.json();
-            return data.url; 
+            return data.url;
         } catch (error) {
             console.error("Upload error:", error);
             displayModal("Failed to upload image");
@@ -220,7 +262,7 @@ const App = () => {
                     handleLogout();
                 });
         }
-    }, []); 
+    }, []);
 
     const Modal = ({ message }) => (
         <div className="fixed top-4 right-4 bg-black text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-all duration-300 transform animate-fade-in-down">
@@ -237,53 +279,53 @@ const App = () => {
                     <Route path="/" element={<HomePage />} />
                     <Route path="/home" element={<HomePage />} />
                     <Route path="/search" element={<SearchPage />} />
-                    
+
                     {/* ROUTE 1: USER AUTHENTICATION (Login / User Sign Up)
                       Accessible at /registeruser. 
                       If they are already logged in, we can redirect them to profile.
                     */}
                     <Route path="/registeruser" element={
                         isLoggedIn ? <Navigate to="/profile" /> : (
-                            <RegisterUser 
-                                displayModal={displayModal} 
+                            <RegisterUser
+                                displayModal={displayModal}
                                 handleLogin={handleLogin}
-                                handleRegister={handleRegister} 
+                                handleRegister={handleRegister}
                             />
                         )
                     } />
 
                     <Route path="/login" element={
                         isLoggedIn ? <Navigate to="/profile" /> : (
-                            <Login 
-                                displayModal={displayModal} 
+                            <Login
+                                displayModal={displayModal}
                                 handleLogin={handleLogin}
-                                handleRegister={handleRegister} 
+                                handleRegister={handleRegister}
                             />
                         )
                     } />
 
                     <Route path="/forgotpassword" element={
                         isLoggedIn ? <Navigate to="/profile" /> : (
-                            <ForgotPassword 
-                                displayModal={displayModal} 
+                            <ForgotPassword
+                                displayModal={displayModal}
                                 handleLogin={handleLogin}
-                                handleRegister={handleRegister} 
+                                handleRegister={handleRegister}
                             />
                         )
                     } />
-                    
+
                     {/* --- PROTECTED ROUTES --- */}
-                    
+
                     {/* ROUTE 2: BUILDING REGISTRATION (List Location)
                       Accessible at /register. 
                       User MUST be logged in to list a building.
                     */}
                     <Route path="/register" element={
                         <ProtectedRoute isLoggedIn={isLoggedIn} redirectPath="/registeruser">
-                            <Register 
-                                displayModal={displayModal} 
-                                currentUser={currentUser} 
-                                handleUpdateListing={handleUpdateListing} 
+                            <Register
+                                displayModal={displayModal}
+                                currentUser={currentUser}
+                                handleUpdateListing={handleUpdateListing}
                                 uploadFile={uploadFile}
                             />
                         </ProtectedRoute>
@@ -291,15 +333,16 @@ const App = () => {
 
                     <Route path="/profile" element={
                         <ProtectedRoute isLoggedIn={isLoggedIn} redirectPath="/registeruser">
-                            <Profile 
-                                isLoggedIn={isLoggedIn} 
-                                currentUser={currentUser} 
-                                handleLogin={handleLogin} 
-                                handleLogout={handleLogout} 
-                                displayModal={displayModal} 
-                            />
+                            <UserProfile
+                                displayModal={displayModal}
+                                handleRegister={handleRegister}
+                                handleUpdateProfile={handleUpdateProfile} // <--- Pass the new function
+                                currentUser={currentUser}                 // <--- Pass the current user
+                                apiFetch={apiFetch}                       // <--- Pass apiFetch for listings
+                            /> 
                         </ProtectedRoute>
-                    } />
+                    }
+                    />
 
                     <Route path="/saved" element={
                         <ProtectedRoute isLoggedIn={isLoggedIn} redirectPath="/registeruser">

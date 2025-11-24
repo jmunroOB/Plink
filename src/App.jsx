@@ -92,6 +92,7 @@ const App = () => {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [currentUser, setCurrentUser] = useState(null);
     const [modalContent, setModalContent] = useState(null);
+    const [isLoadingUser, setIsLoadingUser] = useState(true);
 
     const isAdminRoute = location.pathname.startsWith('/admin');
 
@@ -260,7 +261,14 @@ const App = () => {
                 .catch(error => {
                     console.error('Token validation failed:', error);
                     handleLogout();
+                })
+                // ADD THIS FINALLY BLOCK
+                .finally(() => {
+                    setIsLoadingUser(false);
                 });
+        } else {
+            // If no token, we aren't loading anymore
+            setIsLoadingUser(false);
         }
     }, []);
 
@@ -337,9 +345,9 @@ const App = () => {
                                 displayModal={displayModal}
                                 handleRegister={handleRegister}
                                 handleUpdateProfile={handleUpdateProfile} // <--- Pass the new function
-                                currentUser={user}                 // <--- Pass the current user
+                                currentUser={currentUser}                 // <--- Pass the current user
                                 apiFetch={apiFetch}                       // <--- Pass apiFetch for listings
-                            /> 
+                            />
                         </ProtectedRoute>
                     }
                     />

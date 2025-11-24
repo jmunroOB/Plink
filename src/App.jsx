@@ -3,7 +3,7 @@ import { Routes, Route, Link, useNavigate, useLocation, Navigate } from 'react-r
 import { Home, Search, PlusSquare, User, LogIn, LogOut, Heart } from 'lucide-react';
 
 // Import Page Components
-import Profile from './pages/Profile';
+import UserProfile from './pages/Profile';
 import RegisterUser from './pages/RegisterUser';
 import Login from './pages/Login';
 import Register from './pages/Register';

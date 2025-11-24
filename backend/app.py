@@ -76,11 +76,6 @@ def execute_sql(sql_query, params=None, fetch_one=False, fetch_all=False, commit
 
 app = Flask(__name__)
 
-# =======================================================
-# === CORS CONFIGURATION (THE FIX) ===
-# =======================================================
-# This explicitly tells the browser: "I allow these specific websites to talk to me"
-# It also specifically allows the 'Authorization' header needed for your JWTs.
 CORS(app, resources={r"/*": {
     "origins": [
         "https://plink-rmjy.onrender.com",  # Your Live Frontend
@@ -214,6 +209,29 @@ def login():
         }), 200
     else:
         return jsonify({"error": "Invalid credentials"}), 401
+    
+
+@app.route("/auth/me", methods=["GET", "OPTIONS"])
+@jwt_required
+def get_current_user():
+    try:
+        # request.user_id comes from the @jwt_required decorator
+        sql = "SELECT id, email, user_role FROM auth_users WHERE id = %s"
+        user = execute_sql(sql, (request.user_id,), fetch_one=True)
+        
+        if user:
+            return jsonify({
+                "user": {
+                    "id": str(user['id']),
+                    "email": user['email'],
+                    "role": user['user_role']
+                    # Add other profile fields here if needed (e.g. bio, phone)
+                }
+            }), 200
+        else:
+            return jsonify({"error": "User not found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 # --- AI ANALYSIS ROUTE ---

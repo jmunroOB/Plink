@@ -402,6 +402,69 @@ def get_property_styles():
         return jsonify(styles), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+# --- ADD THIS TO app.py ---
+
+@app.route("/locations/search", methods=["GET"])
+def search_locations():
+    try:
+        # Get query parameters
+        p_type = request.args.get('propertyType')
+        age = request.args.get('age') # Maps to property_styles
+        room = request.args.get('rooms')
+        postcode = request.args.get('postcode')
+        
+        # Base Query
+        sql = "SELECT * FROM locations WHERE status != 'archived'"
+        params = []
+        
+        # Dynamic Filtering
+        if p_type:
+            sql += " AND property_type = %s"
+            params.append(p_type)
+            
+        if age:
+            # Check if the tag exists in the text[] array
+            sql += " AND %s = ANY(property_styles)"
+            params.append(age)
+            
+        if room:
+            sql += " AND %s = ANY(rooms)"
+            params.append(room)
+            
+        if postcode:
+            sql += " AND postcode ILIKE %s"
+            params.append(f"%{postcode}%")
+            
+        sql += " ORDER BY created_at DESC"
+        
+        locations = execute_sql(sql, tuple(params), fetch_all=True)
+        
+        # Process results to match Frontend expectations
+        results = []
+        for loc in locations:
+            # Map DB fields to Frontend fields
+            results.append({
+                "id": loc['id'],
+                "title": f"{loc['property_type']} in {loc['city']}", # Generate a title
+                "type": loc['property_type'],
+                "location": loc['city'],
+                "age": loc['property_styles'][0] if loc['property_styles'] else 'Unknown',
+                "rooms": loc['rooms'] or [],
+                "internalFeatures": loc['interior_features'] or [],
+                "externalFeatures": loc['exterior_features'] or [],
+                "description": loc['description'],
+                "parking": "Details on request", # You can add a DB column for this later
+                "images": loc['image_urls'] or [],
+                "videoUrl": loc['video_url'],
+                "postcode": loc['postcode']
+            })
+            
+        return jsonify(results), 200
+
+    except Exception as e:
+        print(f"Search error: {e}")
+        return jsonify({"error": str(e)}), 500
     
 # --- AI ANALYSIS ROUTE ---
 @app.route("/ai/analyze", methods=["POST"])

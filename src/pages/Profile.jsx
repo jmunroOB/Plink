@@ -121,7 +121,7 @@ const UserProfile = ({
             {/* --- PROFILE / REGISTER FORM --- */}
             <div className="w-full max-w-md p-8 bg-white shadow-lg rounded-lg mb-8">
                 <h1 className="text-3xl font-bold mb-2 text-center text-gray-800">
-                    {currentUser ? 'Edit Profile' : 'Register'}
+                    {currentUser ? 'Edit Profile' : 'Register Now v2'}
                 </h1>
 
                 {currentUser && (

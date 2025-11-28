@@ -165,8 +165,11 @@ def register():
     email = data.get("email")
     password = data.get("password")
     
-    # 1. CAPTURE THE NEW DATA (Default to empty string or None if missing)
-    phone_number = data.get("phone_number", None)
+    # --- THE FIX IS HERE ---
+    # We check for "phone_number" (Snake Case) AND "phoneNumber" (Camel Case)
+    # If one is missing, it tries the other.
+    phone_number = data.get("phone_number") or data.get("phoneNumber") or None
+    
     bio = data.get("bio", None)
     
     if not email or not password:
@@ -175,7 +178,6 @@ def register():
     hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
     
     try:
-        # 2. UPDATE THE SQL TO INSERT THE NEW COLUMNS
         sql = """
             INSERT INTO auth_users (email, password_hash, user_role, phone_number, bio) 
             VALUES (%s, %s, %s, %s, %s)
@@ -187,7 +189,6 @@ def register():
         if "duplicate key value violates unique constraint" in str(e):
             return jsonify({"error": "User already exists"}), 409
         return jsonify({"error": f"Registration failed: {e}"}), 500
-
 @app.route("/auth/login", methods=["POST"])
 def login():
     data = request.json

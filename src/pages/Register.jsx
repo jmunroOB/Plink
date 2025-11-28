@@ -283,6 +283,11 @@ const Register = () => {
     };
     // --- RENDER STEPS ---
     const renderStep = () => {
+
+        const stepTitle = `Step ${step} of 10: `;
+        const interiorGroupedFeatures = getGroupedFeatures(true);
+        const exteriorGroupedFeatures = getGroupedFeatures(false);
+
         switch (step) {
             case 1: return (
                 <div className="space-y-4">

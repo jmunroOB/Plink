@@ -1,4 +1,4 @@
-// src/pages/Register.jsx
+// src/pages/RegisterUser.jsx
 
 import React, { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -54,7 +54,7 @@ const RegisterUser = ({ displayModal, handleRegister }) => {
                     <div className="relative">
                         <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                         <input
-                            type="phone_number"
+                            type="tel"
                             value={phone_number}
                             onChange={(e) => setPhone_number(e.target.value)}
                             placeholder="Phone Number"

@@ -162,7 +162,7 @@ def send_scheduled_email(recipients_type, subject, body, file_paths):
 @app.route("/auth/register", methods=["POST"])
 def register():
     data = request.json
-    
+
     print(f"🔥 BACKEND RECEIVED: {data}", flush=True)
 
     email = data.get("email")
@@ -296,6 +296,60 @@ def update_user_profile():
         if "duplicate key value violates unique constraint" in str(e):
             return jsonify({"error": "This email address is already in use."}), 409
         return jsonify({"error": f"Failed to update profile: {str(e)}"}), 500
+
+@app.route("/locations", methods=["POST"])
+@jwt_required
+def create_location():
+    try:
+        # 1. Handle JSON Data (The frontend will send FormData, so we access .form)
+        # However, for complex arrays + files, it's often easier to send JSON 
+        # AFTER uploading files, or parse multipart/form-data manually.
+        # Let's assume the frontend uploads files first, gets URLs, then sends JSON.
+        
+        data = request.json
+        
+        # Extract basic fields
+        contact_name = data.get('fullName')
+        contact_email = data.get('email')
+        contact_phone = data.get('phoneNumber')
+        street = data.get('streetAddress')
+        city = data.get('city')
+        postcode = data.get('postcode')
+        p_type = data.get('propertyType')
+        desc = data.get('locationDescriptionText')
+        
+        # Extract Arrays (Postgres needs them as lists)
+        styles = data.get('propertyStyleTags', [])
+        rooms = data.get('rooms', [])
+        interior = data.get('interiorFeatures', [])
+        exterior = data.get('exteriorFeatures', [])
+        images = data.get('imageUrls', [])
+        video = data.get('videoUrl', None)
+
+        sql = """
+            INSERT INTO locations 
+            (user_id, contact_name, contact_email, contact_phone, 
+             street_address, city, postcode, property_type, description,
+             property_styles, rooms, interior_features, exterior_features, 
+             image_urls, video_url)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
+        """
+        
+        params = (
+            request.user_id, contact_name, contact_email, contact_phone,
+            street, city, postcode, p_type, desc,
+            styles, rooms, interior, exterior, 
+            images, video
+        )
+        
+        new_loc = execute_sql(sql, params, fetch_one=True, commit=True)
+        
+        return jsonify({"message": "Location created successfully", "id": new_loc['id']}), 201
+
+    except Exception as e:
+        print(f"Error creating location: {e}")
+        return jsonify({"error": str(e)}), 500
 
 # --- AI ANALYSIS ROUTE ---
 @app.route("/ai/analyze", methods=["POST"])

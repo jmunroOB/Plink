@@ -79,6 +79,8 @@ const UserProfile = ({
             bio
         };
 
+        console.log("🚀 FRONTEND SENDING:", { ...payload, password });
+
         // Only add password to payload if the user actually typed one
         if (password) {
             payload.password = password;

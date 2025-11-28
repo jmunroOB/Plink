@@ -162,6 +162,9 @@ def send_scheduled_email(recipients_type, subject, body, file_paths):
 @app.route("/auth/register", methods=["POST"])
 def register():
     data = request.json
+    
+    print(f"🔥 BACKEND RECEIVED: {data}", flush=True)
+
     email = data.get("email")
     password = data.get("password")
     
@@ -189,6 +192,7 @@ def register():
         if "duplicate key value violates unique constraint" in str(e):
             return jsonify({"error": "User already exists"}), 409
         return jsonify({"error": f"Registration failed: {e}"}), 500
+    
 @app.route("/auth/login", methods=["POST"])
 def login():
     data = request.json

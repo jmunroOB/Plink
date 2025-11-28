@@ -122,11 +122,6 @@ const UserProfile = ({
                     {currentUser ? 'Edit Profile' : 'Register'}
                 </h1>
 
-                <div className="bg-red-100 border border-red-400 text-red-700 p-4 my-4 text-xs font-mono break-all">
-                    <p><strong>DEBUG INFO (Remove after fixing):</strong></p>
-                    <p>Current User: {JSON.stringify(currentUser)}</p>
-                </div>
-
                 {currentUser && (
                     <p className="text-center text-gray-500 mb-6 text-sm">Update your details below</p>
                 )}

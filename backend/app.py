@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory 
 from flask_cors import CORS
 from functools import wraps
 import json
@@ -9,7 +9,8 @@ from werkzeug.utils import secure_filename
 from apscheduler.schedulers.background import BackgroundScheduler
 import atexit
 import psycopg2 
-from psycopg2 import pool, extras 
+from psycopg2 import pool, extras
+
 
 import bcrypt      # For password hashing
 import jwt         # For creating secure session tokens (JWTs)
@@ -75,6 +76,12 @@ def execute_sql(sql_query, params=None, fetch_one=False, fetch_all=False, commit
 
 
 app = Flask(__name__)
+
+UPLOAD_FOLDER = 'static/uploads'
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 CORS(app, resources={r"/*": {
     "origins": [
@@ -351,6 +358,51 @@ def create_location():
         print(f"Error creating location: {e}")
         return jsonify({"error": str(e)}), 500
 
+
+@app.route('/upload', methods=['POST'])
+@jwt_required
+def upload_file():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+    
+    if file:
+        filename = secure_filename(file.filename)
+        # Create a unique name to prevent overwriting
+        unique_filename = f"{datetime.datetime.now().timestamp()}_{filename}"
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], unique_filename))
+        
+        # Return the full URL to the file
+        # Note: On Render, this saves to temporary disk. For production, use AWS S3.
+        # But this works for now.
+        file_url = f"{request.host_url}static/uploads/{unique_filename}"
+        return jsonify({'url': file_url}), 200
+
+# 2. SERVE UPLOADED FILES
+@app.route('/static/uploads/<filename>')
+def serve_upload(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+# 3. GET PROPERTY TYPES (From Database)
+@app.route('/static/property-types', methods=['GET'])
+def get_property_types():
+    try:
+        types = execute_sql("SELECT label, image_url FROM property_types", fetch_all=True)
+        return jsonify(types), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# 4. GET PROPERTY STYLES (From Database)
+@app.route('/static/property_styles', methods=['GET'])
+def get_property_styles():
+    try:
+        styles = execute_sql("SELECT label, image_url FROM property_styles", fetch_all=True)
+        return jsonify(styles), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
 # --- AI ANALYSIS ROUTE ---
 @app.route("/ai/analyze", methods=["POST"])
 def ai_analyze():

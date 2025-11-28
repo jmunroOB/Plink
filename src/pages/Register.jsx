@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-    MapPin, Home, Bed, Car, ImageIcon, PlayCircle, FileText, User as UserIcon, CheckCircle, XCircle, 
-    CookingPot, ShowerHead, BookOpen, Warehouse, Trees, Zap 
+import {
+    MapPin, Home, Bed, Car, ImageIcon, PlayCircle, FileText, User as UserIcon, CheckCircle, XCircle,
+    CookingPot, ShowerHead, BookOpen, Warehouse, Trees, Zap
 } from 'lucide-react';
 import { AppContext } from '../App';
 
@@ -115,23 +115,41 @@ const Register = () => {
     const navigate = useNavigate();
     const { currentUser, apiFetch, uploadFile } = useContext(AppContext); // USE CONTEXT ONLY
 
-    const [step, setStep] = useState(1); 
+    const [step, setStep] = useState(1);
     const [modalMessage, setModalMessage] = useState('');
     const [modalTitle, setModalTitle] = useState('');
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [selectedVideo, setSelectedVideo] = useState(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [dbPropertyTypes, setDbPropertyTypes] = useState([]);
+    const [dbPropertyStyles, setDbPropertyStyles] = useState([]);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                // We use generic fetch here because these might be public endpoints
+                const typesRes = await fetch('https://plink-backend-api.onrender.com/static/property-types');
+                const stylesRes = await fetch('https://plink-backend-api.onrender.com/static/property_styles');
+
+                if (typesRes.ok) setDbPropertyTypes(await typesRes.json());
+                if (stylesRes.ok) setDbPropertyStyles(await stylesRes.json());
+            } catch (err) {
+                console.error("Failed to load static data", err);
+            }
+        };
+        fetchData();
+    }, []);
 
     // Initial State - Pre-fill with User Data if available
     const [formData, setFormData] = useState({
-        fullName: currentUser?.name || '', 
-        email: currentUser?.email || '', 
-        phoneNumber: currentUser?.phone_number || '', 
+        fullName: currentUser?.name || '',
+        email: currentUser?.email || '',
+        phoneNumber: currentUser?.phone_number || '',
         password: '', confirmPassword: '', // NOTE: We don't really need these if logged in, but keeping for UI consistency
         streetAddress: '', city: '', postcode: '',
-        propertyType: '', propertyStyleTags: [], rooms: [], 
-        interiorFeatures: [], exteriorFeatures: [], 
+        propertyType: '', propertyStyleTags: [], rooms: [],
+        interiorFeatures: [], exteriorFeatures: [],
         locationDescriptionText: '', termsAccepted: false,
     });
 
@@ -146,7 +164,7 @@ const Register = () => {
         if (step === 4 && !formData.propertyType) return displayModal("Select a property type.");
         if (step === 5 && formData.propertyStyleTags.length === 0) return displayModal("Select a style/era.");
         if (step === 6 && formData.rooms.length === 0) return displayModal("Select at least one room.");
-        
+
         let nextStep = step + 1;
         // Skip Logic
         if (step === 6 && !formData.rooms.some(r => ROOM_TYPES.slice(0, 13).includes(r))) nextStep = 8;
@@ -166,7 +184,7 @@ const Register = () => {
             const currentTags = prev[tagKey];
             let newTags;
             if (tagKey === 'propertyType') return { ...prev, [tagKey]: currentTags === tagName ? '' : tagName };
-            
+
             if (currentTags.includes(tagName)) {
                 newTags = currentTags.filter(name => name !== tagName);
             } else {
@@ -175,6 +193,32 @@ const Register = () => {
             return { ...prev, [tagKey]: newTags };
         });
     };
+
+    const handleAddressLookup = async () => {
+                    const postcode = formData.postcode;
+                    if (!postcode) return displayModal("Please enter a postcode first.");
+
+                    // MOCK LOOKUP (Since we don't have a paid API key yet)
+                    // In the future, replace this fetch with a real call to https://api.postcodes.io
+                    try {
+                        const response = await fetch(`https://api.postcodes.io/postcodes/${postcode}`);
+                        const data = await response.json();
+
+                        if (data.status === 200) {
+                            setFormData(prev => ({
+                                ...prev,
+                                city: data.result.parish || data.result.admin_district,
+                                // Note: Free APIs rarely give House Number/Street Address
+                                streetAddress: "" // User still needs to fill this
+                            }));
+                            displayModal("City found! Please fill in your specific Street Address.");
+                        } else {
+                            displayModal("Postcode not found.");
+                        }
+                    } catch (e) {
+                        displayModal("Could not fetch address data.");
+                    }
+                };
 
     const handleFileChange = (e) => setSelectedFiles(Array.from(e.target.files));
     const handleVideoChange = (e) => setSelectedVideo(e.target.files[0]);
@@ -213,7 +257,7 @@ const Register = () => {
 
             if (response.ok) {
                 displayModal("Location submitted successfully!", "Success");
-                navigate('/home'); 
+                navigate('/home');
             } else {
                 const err = await response.json();
                 throw new Error(err.error || "Submission failed");
@@ -236,28 +280,28 @@ const Register = () => {
     const getGroupedFeatures = (isInterior) => {
         const selectedRooms = formData.rooms;
         const groupedFeatures = {};
-        
+
         // Define which rooms are "Interior" vs "Exterior"
         const interiorRoomTypes = ROOM_TYPES.slice(0, 13); // First 13 rooms are interior
-        
+
         // Filter rooms based on whether we are looking for Interior or Exterior features
-        const relevantRooms = selectedRooms.filter(room => 
-            isInterior 
-                ? interiorRoomTypes.includes(room) 
-                : !interiorRoomTypes.includes(room) 
+        const relevantRooms = selectedRooms.filter(room =>
+            isInterior
+                ? interiorRoomTypes.includes(room)
+                : !interiorRoomTypes.includes(room)
         );
 
         // If any interior room is selected, also show "General Interior" features
         if (isInterior && relevantRooms.some(r => interiorRoomTypes.includes(r))) {
             relevantRooms.push('General Interior');
         }
-        
+
         // Get the list of feature categories (Kitchen, Bathroom, Garden, etc.)
         const interiorGroupKeys = Object.keys(INTERIOR_GROUP_TO_ROOMS);
         const exteriorGroupKeys = Object.keys(FEATURE_MAPPING).filter(k => !interiorGroupKeys.includes(k) && k !== 'General Interior');
-        
+
         const groupKeys = isInterior ? interiorGroupKeys : exteriorGroupKeys;
-        
+
         // Loop through categories and decide if we should show them
         groupKeys.forEach(groupKey => {
             // Find which rooms trigger this category (e.g., 'Kitchen' room triggers 'Kitchen' features)
@@ -272,13 +316,13 @@ const Register = () => {
             if (isRelevant || isGeneralInterior) {
                 // Get the list of features (e.g., ['Aga', 'Island'])
                 const features = FEATURE_MAPPING[groupKey] || FEATURE_MAPPING[roomsInGroup[0]];
-                
+
                 if (features && features.length > 0) {
                     groupedFeatures[groupKey] = features;
                 }
             }
         });
-        
+
         return groupedFeatures;
     };
     // --- RENDER STEPS ---
@@ -301,37 +345,121 @@ const Register = () => {
             case 2: return (
                 <div className="space-y-4">
                     <h2 className="text-xl font-bold">Step 2: Location Address</h2>
-                    <input type="text" name="streetAddress" value={formData.streetAddress} onChange={handleChange} placeholder="Street Address" className="w-full p-3 border rounded" />
-                    <div className="flex gap-4">
-                        <input type="text" name="city" value={formData.city} onChange={handleChange} placeholder="City" className="w-full p-3 border rounded" />
-                        <input type="text" name="postcode" value={formData.postcode} onChange={handleChange} placeholder="Postcode" className="w-full p-3 border rounded" />
+                    <div className="flex gap-2 items-end">
+                        <div className="flex-1">
+                            <label className="text-sm text-gray-600">Postcode</label>
+                            <input type="text" name="postcode" value={formData.postcode} onChange={handleChange} placeholder="e.g. SW1A 1AA" className="w-full p-3 border rounded" />
+                        </div>
+                        <button type="button" onClick={handleAddressLookup} className="px-4 py-3 bg-blue-600 text-white rounded hover:bg-blue-700">
+                            Find Address
+                        </button>
                     </div>
+                    <input type="text" name="streetAddress" value={formData.streetAddress} onChange={handleChange} placeholder="Street Address" className="w-full p-3 border rounded" />
+                    <input type="text" name="city" value={formData.city} onChange={handleChange} placeholder="City / Town" className="w-full p-3 border rounded" />
                 </div>
             );
             case 3: return (
                 <div className="space-y-4">
                     <h2 className="text-xl font-bold">Step 3: Upload Images</h2>
-                    <input type="file" multiple accept="image/*" onChange={handleFileChange} className="w-full p-3 border rounded" />
-                    <p className="text-sm text-gray-500">{selectedFiles.length} images selected</p>
+                    <div className="border-2 border-dashed border-gray-300 p-8 text-center rounded-lg hover:bg-gray-50 transition">
+                        <input 
+                            type="file" 
+                            multiple 
+                            accept="image/*" 
+                            onChange={handleFileChange} 
+                            className="hidden" 
+                            id="file-upload"
+                        />
+                        <label htmlFor="file-upload" className="cursor-pointer flex flex-col items-center">
+                            <ImageIcon size={48} className="text-gray-400 mb-2"/>
+                            <span className="text-blue-600 font-medium">Click to upload photos</span>
+                            <span className="text-sm text-gray-500">or drag and drop here</span>
+                        </label>
+                    </div>
+                    
+                    {/* Preview Area */}
+                    {selectedFiles.length > 0 && (
+                        <div className="grid grid-cols-3 gap-2 mt-4">
+                            {selectedFiles.map((file, i) => (
+                                <div key={i} className="relative h-24 w-full">
+                                    <img src={URL.createObjectURL(file)} alt="preview" className="h-full w-full object-cover rounded" />
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    <p className="text-sm text-gray-500 text-right">{selectedFiles.length} images selected</p>
                 </div>
             );
             case 4: return (
                 <div>
                     <h2 className="text-xl font-bold mb-4">Step 4: Property Type</h2>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {PROPERTY_STRUCTURAL_TYPES.map(t => (
-                            <ImageCard key={t} label={t} isSelected={formData.propertyType === t} onClick={() => handleTagChange('propertyType', t)} />
-                        ))}
+                        {/* Use dbPropertyTypes instead of static array */}
+                        {dbPropertyTypes.length > 0 ? dbPropertyTypes.map(t => (
+                            <div 
+                                key={t.label} 
+                                onClick={() => handleTagChange('propertyType', t.label)}
+                                className={`cursor-pointer border rounded-lg overflow-hidden ${formData.propertyType === t.label ? 'ring-2 ring-black' : ''}`}
+                            >
+                                <img src={t.image_url} alt={t.label} className="h-24 w-full object-cover" />
+                                <p className="text-center p-2 text-sm">{t.label}</p>
+                            </div>
+                        )) : <p>Loading types...</p>}
                     </div>
                 </div>
             );
             case 5: return (
                 <div>
-                    <h2 className="text-xl font-bold mb-4">Step 5: Style & Era</h2>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {PROPERTY_STYLE_ERAS.map(t => (
-                            <ImageCard key={t} label={t} isSelected={formData.propertyStyleTags.includes(t)} onClick={() => handleTagChange('propertyStyleTags', t)} isMultiSelect />
-                        ))}
+                    <h2 className="text-xl font-bold mb-4">Step 5: Style & Era (Select all that apply)</h2>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-h-[500px] overflow-y-auto pr-2">
+                        {dbPropertyStyles.length > 0 ? dbPropertyStyles.map(style => {
+                            const isSelected = formData.propertyStyleTags.includes(style.label);
+                            return (
+                                <div 
+                                    key={style.label} 
+                                    onClick={() => handleTagChange('propertyStyleTags', style.label)}
+                                    className={`relative cursor-pointer border rounded-lg overflow-hidden transition-all ${
+                                        isSelected 
+                                            ? 'ring-2 ring-black shadow-md transform scale-[1.02]' 
+                                            : 'hover:border-gray-400'
+                                    }`}
+                                >
+                                    <div className="h-28 w-full bg-gray-100">
+                                        {style.image_url ? (
+                                            <img 
+                                                src={style.image_url} 
+                                                alt={style.label} 
+                                                className="h-full w-full object-cover"
+                                                onError={(e) => {
+                                                    e.target.style.display = 'none'; // Hide broken image
+                                                    e.target.parentElement.classList.add('flex', 'items-center', 'justify-center');
+                                                    e.target.parentElement.innerText = 'No Image';
+                                                }}
+                                            />
+                                        ) : (
+                                            <div className="h-full flex items-center justify-center text-xs text-gray-400">
+                                                {style.label}
+                                            </div>
+                                        )}
+                                    </div>
+                                    
+                                    <p className="text-center p-2 text-sm font-medium bg-white border-t">
+                                        {style.label}
+                                    </p>
+
+                                    {/* Visual Checkmark for selected items */}
+                                    {isSelected && (
+                                        <div className="absolute top-2 right-2 bg-black text-white rounded-full p-1 shadow-sm">
+                                            <CheckCircle size={14} />
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        }) : (
+                            <div className="col-span-full text-center py-8 text-gray-500">
+                                <p>Loading property styles...</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             );
@@ -351,7 +479,7 @@ const Register = () => {
                 return (
                     <>
                         <div className="flex items-center space-x-1 mb-4">
-                            <FileText size={24} className="text-black"/>
+                            <FileText size={24} className="text-black" />
                             <h2 className="text-xl font-bold">{stepTitle}Interior Features ({formData.interiorFeatures.length} selected)</h2>
                             {formData.interiorFeatures.length > 0 && <CheckCircle size={20} className="text-green-600 ml-2" />}
                         </div>
@@ -374,7 +502,7 @@ const Register = () => {
                 return (
                     <>
                         <div className="flex items-center space-x-1 mb-4">
-                            <FileText size={24} className="text-black"/>
+                            <FileText size={24} className="text-black" />
                             <h2 className="text-xl font-bold">{stepTitle}Exterior Features ({formData.exteriorFeatures.length} selected)</h2>
                             {formData.exteriorFeatures.length > 0 && <CheckCircle size={20} className="text-green-600 ml-2" />}
                         </div>
@@ -392,12 +520,12 @@ const Register = () => {
                         </div>
                     </>
                 );
-            
+
             case 9:
                 return (
                     <>
                         <div className="flex items-center space-x-1 mb-4">
-                            <PlayCircle size={24} className="text-black"/>
+                            <PlayCircle size={24} className="text-black" />
                             <h2 className="text-xl font-bold">{stepTitle}Virtual Tour Video (Optional)</h2>
                         </div>
                         <p className="text-gray-500 text-sm mb-4">Upload a video showcasing your property for an enhanced listing.</p>
@@ -445,7 +573,7 @@ const Register = () => {
 
                 <form onSubmit={handleLocationSubmit}>
                     {renderStep()}
-                    
+
                     <div className="flex justify-between mt-8 pt-4 border-t">
                         {step > 1 && <button type="button" onClick={handleBack} className="px-6 py-2 bg-gray-200 rounded">Back</button>}
                         {step < 10 ? (

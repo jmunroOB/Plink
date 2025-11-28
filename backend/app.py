@@ -215,8 +215,8 @@ def login():
 @jwt_required
 def get_current_user():
     try:
-        # request.user_id comes from the @jwt_required decorator
-        sql = "SELECT id, email, user_role FROM auth_users WHERE id = %s"
+        # UPDATED SQL: Added phone_number and bio to the SELECT list
+        sql = "SELECT id, email, user_role, phone_number, bio FROM auth_users WHERE id = %s"
         user = execute_sql(sql, (request.user_id,), fetch_one=True)
         
         if user:
@@ -224,15 +224,16 @@ def get_current_user():
                 "user": {
                     "id": str(user['id']),
                     "email": user['email'],
-                    "role": user['user_role']
-                    # Add other profile fields here if needed (e.g. bio, phone)
+                    "role": user['user_role'],
+                    # Use .get() to handle cases where they might be NULL in the DB
+                    "phone_number": user.get('phone_number', ''),
+                    "bio": user.get('bio', '')
                 }
             }), 200
         else:
             return jsonify({"error": "User not found"}), 404
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 # --- AI ANALYSIS ROUTE ---
 @app.route("/ai/analyze", methods=["POST"])

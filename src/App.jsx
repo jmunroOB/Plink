@@ -160,22 +160,23 @@ const App = () => {
         navigate('/');
     };
 
-    const handleRegister = async ({ email, password }) => {
-        try {
-            const response = await apiFetch('/auth/register', {
-                method: 'POST',
-                body: JSON.stringify({ email, password })
-            });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.message || 'Registration failed');
+    const handleRegister = async (userData) => { // <--- CHANGED: Accept the whole object, not just {email, password}
+    try {
+        const response = await apiFetch('/auth/register', {
+            method: 'POST',
+            body: JSON.stringify(userData)
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Registration failed');
 
-            await handleLogin({ email, password });
-            displayModal('Registration successful!');
-        } catch (error) {
-            console.error('Registration failed:', error.message);
-            displayModal(`Registration failed: ${error.message}`);
-        }
-    };
+        // Automatically log them in after registering
+        await handleLogin({ email: userData.email, password: userData.password });
+        displayModal('Registration successful!');
+    } catch (error) {
+        console.error('Registration failed:', error.message);
+        displayModal(`Registration failed: ${error.message}`);
+    }
+};
 
     const handleUpdateProfile = async (userData) => {
         try {

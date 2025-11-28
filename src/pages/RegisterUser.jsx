@@ -21,7 +21,12 @@ const RegisterUser = ({ displayModal, handleRegister }) => {
         }
 
         try {
-            await handleRegister({ email, password, bio });
+            await handleRegister({ 
+                email, 
+                password, 
+                bio,
+                phone_number 
+            });
             displayModal("Registration successful!");
             navigate('/profile');
         } catch (error) {

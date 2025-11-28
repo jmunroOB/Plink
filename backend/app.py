@@ -165,19 +165,25 @@ def register():
     email = data.get("email")
     password = data.get("password")
     
+    # 1. CAPTURE THE NEW DATA (Default to empty string or None if missing)
+    phone_number = data.get("phone_number", None)
+    bio = data.get("bio", None)
+    
     if not email or not password:
         return jsonify({"error": "Email and password required"}), 400
         
-    # Hash password securely
     hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
     
     try:
-        # Default role is 'user'
-        sql = "INSERT INTO auth_users (email, password_hash, user_role) VALUES (%s, %s, %s)"
-        execute_sql(sql, (email, hashed_password, 'user'), commit=True)
+        # 2. UPDATE THE SQL TO INSERT THE NEW COLUMNS
+        sql = """
+            INSERT INTO auth_users (email, password_hash, user_role, phone_number, bio) 
+            VALUES (%s, %s, %s, %s, %s)
+        """
+        execute_sql(sql, (email, hashed_password, 'user', phone_number, bio), commit=True)
+        
         return jsonify({"message": "Registration successful"}), 201
     except Exception as e:
-        # Check for PostgreSQL unique constraint error (user already exists)
         if "duplicate key value violates unique constraint" in str(e):
             return jsonify({"error": "User already exists"}), 409
         return jsonify({"error": f"Registration failed: {e}"}), 500

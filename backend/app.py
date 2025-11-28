@@ -234,6 +234,57 @@ def get_current_user():
             return jsonify({"error": "User not found"}), 404
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+@app.route("/users/profile", methods=["PUT", "OPTIONS"])
+@jwt_required
+def update_user_profile():
+    try:
+        data = request.json
+        # Get data from frontend, default to empty string if not provided
+        new_email = data.get("email")
+        new_phone = data.get("phone_number", "")
+        new_bio = data.get("bio", "")
+        new_password = data.get("password") # Optional
+
+        if not new_email:
+             return jsonify({"error": "Email is required"}), 400
+
+        # 1. Base Update SQL for non-password fields
+        sql = """
+            UPDATE auth_users 
+            SET email = %s, phone_number = %s, bio = %s
+            WHERE id = %s
+        """
+        params = [new_email, new_phone, new_bio, request.user_id]
+
+        execute_sql(sql, tuple(params), commit=True)
+
+        # 2. Handle Password Update (if provided)
+        if new_password:
+             hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+             sql_pass = "UPDATE auth_users SET password_hash = %s WHERE id = %s"
+             execute_sql(sql_pass, (hashed_password, request.user_id), commit=True)
+
+        # 3. Fetch the updated user to return back to the frontend
+        fetch_sql = "SELECT id, email, user_role, phone_number, bio FROM auth_users WHERE id = %s"
+        updated_user = execute_sql(fetch_sql, (request.user_id,), fetch_one=True)
+
+        return jsonify({
+            "message": "Profile updated successfully",
+            "user": {
+                "id": str(updated_user['id']),
+                "email": updated_user['email'],
+                "role": updated_user['user_role'],
+                "phone_number": updated_user.get('phone_number', ''),
+                "bio": updated_user.get('bio', '')
+            }
+        }), 200
+
+    except Exception as e:
+        # Catch duplicate email errors
+        if "duplicate key value violates unique constraint" in str(e):
+            return jsonify({"error": "This email address is already in use."}), 409
+        return jsonify({"error": f"Failed to update profile: {str(e)}"}), 500
 
 # --- AI ANALYSIS ROUTE ---
 @app.route("/ai/analyze", methods=["POST"])

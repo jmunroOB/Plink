@@ -232,9 +232,13 @@ const Register = () => {
             // 1. Upload Images
             const imageUrls = [];
             for (const file of selectedFiles) {
-                const url = await uploadFile(file); // Uses App.jsx upload function
-                if (url) imageUrls.push(url);
+                // Ensure uploadFile returns the object property 'url'
+                const responseUrl = await uploadFile(file); 
+                if (responseUrl) imageUrls.push(responseUrl);
             }
+            
+            // Debug Log (Check your browser console when submitting!)
+            console.log("Submitting Images:", imageUrls);
 
             // 2. Upload Video
             let videoUrl = null;

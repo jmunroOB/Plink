@@ -10,6 +10,9 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import atexit
 import psycopg2 
 from psycopg2 import pool, extras
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
 
 
 import bcrypt      # For password hashing
@@ -359,26 +362,38 @@ def create_location():
         return jsonify({"error": str(e)}), 500
 
 
+
+# REPLACE THE OLD upload_file FUNCTION WITH THIS:
+
 @app.route('/upload', methods=['POST'])
 @jwt_required
 def upload_file():
     if 'file' not in request.files:
         return jsonify({'error': 'No file part'}), 400
+    
     file = request.files['file']
+    
     if file.filename == '':
         return jsonify({'error': 'No selected file'}), 400
     
     if file:
-        filename = secure_filename(file.filename)
-        # Create a unique name to prevent overwriting
-        unique_filename = f"{datetime.datetime.now().timestamp()}_{filename}"
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], unique_filename))
-        
-        # Return the full URL to the file
-        # Note: On Render, this saves to temporary disk. For production, use AWS S3.
-        # But this works for now.
-        file_url = f"{request.host_url}static/uploads/{unique_filename}"
-        return jsonify({'url': file_url}), 200
+        try:
+            # Upload directly to Cloudinary
+            # "folder" helps organize your images in their dashboard
+            upload_result = cloudinary.uploader.upload(
+                file, 
+                folder="plink_locations",
+                resource_type="auto" # Auto-detects image vs video
+            )
+            
+            # Get the secure URL (https)
+            file_url = upload_result.get('secure_url')
+            
+            return jsonify({'url': file_url}), 200
+            
+        except Exception as e:
+            print(f"Cloudinary Upload Error: {e}")
+            return jsonify({'error': 'Upload to cloud failed'}), 500
 
 # 2. SERVE UPLOADED FILES
 @app.route('/static/uploads/<filename>')
@@ -408,30 +423,23 @@ def get_property_styles():
 @app.route("/locations/search", methods=["GET"])
 def search_locations():
     try:
-        # Get query parameters
         p_type = request.args.get('propertyType')
-        age = request.args.get('age') # Maps to property_styles
+        age = request.args.get('age') 
         room = request.args.get('rooms')
         postcode = request.args.get('postcode')
         
-        # Base Query
         sql = "SELECT * FROM locations WHERE status != 'archived'"
         params = []
         
-        # Dynamic Filtering
         if p_type:
             sql += " AND property_type = %s"
             params.append(p_type)
-            
         if age:
-            # Check if the tag exists in the text[] array
             sql += " AND %s = ANY(property_styles)"
             params.append(age)
-            
         if room:
             sql += " AND %s = ANY(rooms)"
             params.append(room)
-            
         if postcode:
             sql += " AND postcode ILIKE %s"
             params.append(f"%{postcode}%")
@@ -440,13 +448,15 @@ def search_locations():
         
         locations = execute_sql(sql, tuple(params), fetch_all=True)
         
-        # Process results to match Frontend expectations
         results = []
         for loc in locations:
-            # Map DB fields to Frontend fields
+            img_list = loc.get('image_urls')
+            if img_list is None:
+                img_list = []
+                
             results.append({
                 "id": loc['id'],
-                "title": f"{loc['property_type']} in {loc['city']}", # Generate a title
+                "title": f"{loc['property_type']} in {loc['city']}", 
                 "type": loc['property_type'],
                 "location": loc['city'],
                 "age": loc['property_styles'][0] if loc['property_styles'] else 'Unknown',
@@ -454,8 +464,8 @@ def search_locations():
                 "internalFeatures": loc['interior_features'] or [],
                 "externalFeatures": loc['exterior_features'] or [],
                 "description": loc['description'],
-                "parking": "Details on request", # You can add a DB column for this later
-                "images": loc['image_urls'] or [],
+                "parking": "Details on request", 
+                "images": img_list, # <--- THIS MAPS IT TO THE FRONTEND KEY
                 "videoUrl": loc['video_url'],
                 "postcode": loc['postcode']
             })
